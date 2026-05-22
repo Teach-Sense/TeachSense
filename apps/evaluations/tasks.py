@@ -36,10 +36,8 @@ def evaluate_session_responses(self, session_id: int):
 
 		ensemble = LLMEnsemble(
 			config=EnsembleConfig(
-				primary_models=["gpt-4-mini", "claude-3-sonnet"],
-				fallback_models=["gpt-3.5-turbo"],
-				merge_strategy=MergeStrategy.WEIGHTED_AVERAGE,
-			),
+			primary_models=["claude-3-sonnet", "mistral-medium"],
+			fallback_models=["mistral-small"],
 			providers={},
 		)
 
