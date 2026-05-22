@@ -7,6 +7,14 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+
+def env_bool(name, default=False):
+	return os.getenv(name, str(default)).lower() in {"1", "true", "yes", "on"}
+
+
+USE_POSTGRES = env_bool("USE_POSTGRES", False)
+USE_UPSTASH_REDIS = env_bool("USE_UPSTASH_REDIS", False)
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
 
@@ -79,12 +87,21 @@ TEMPLATES = [
 
 DATABASES = {
 	"default": {
-		"ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
-		"NAME": os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
-		"USER": os.getenv("DB_USER", ""),
-		"PASSWORD": os.getenv("DB_PASSWORD", ""),
-		"HOST": os.getenv("DB_HOST", ""),
-		"PORT": os.getenv("DB_PORT", ""),
+		"ENGINE": os.getenv(
+			"DB_ENGINE_PROD" if USE_POSTGRES else "DB_ENGINE_DEV",
+			os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
+		),
+		"NAME": os.getenv(
+			"DB_NAME_PROD" if USE_POSTGRES else "DB_NAME_DEV",
+			os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
+		),
+		"USER": os.getenv("DB_USER_PROD" if USE_POSTGRES else "DB_USER_DEV", os.getenv("DB_USER", "")),
+		"PASSWORD": os.getenv(
+			"DB_PASSWORD_PROD" if USE_POSTGRES else "DB_PASSWORD_DEV",
+			os.getenv("DB_PASSWORD", ""),
+		),
+		"HOST": os.getenv("DB_HOST_PROD" if USE_POSTGRES else "DB_HOST_DEV", os.getenv("DB_HOST", "")),
+		"PORT": os.getenv("DB_PORT_PROD" if USE_POSTGRES else "DB_PORT_DEV", os.getenv("DB_PORT", "")),
 	}
 }
 
@@ -198,10 +215,19 @@ CORS_ALLOW_HEADERS = [
 	"x-api-key",
 ]
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv(
+	"REDIS_URL_PROD" if USE_UPSTASH_REDIS else "REDIS_URL_DEV",
+	os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+)
 
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/2")
+CELERY_BROKER_URL = os.getenv(
+	"CELERY_BROKER_URL_PROD" if USE_UPSTASH_REDIS else "CELERY_BROKER_URL_DEV",
+	os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1"),
+)
+CELERY_RESULT_BACKEND = os.getenv(
+	"CELERY_RESULT_BACKEND_PROD" if USE_UPSTASH_REDIS else "CELERY_RESULT_BACKEND_DEV",
+	os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/2"),
+)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

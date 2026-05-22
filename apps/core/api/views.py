@@ -96,7 +96,9 @@ class HealthCheckView(APIView):
         data = {
             'ok': True,
             'environment': env,
-            'database_engine': os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
+            'database_engine': settings.DATABASES['default']['ENGINE'],
+            'database_name': settings.DATABASES['default']['NAME'],
+            'redis_url_mode': 'production' if os.environ.get('USE_UPSTASH_REDIS', 'false').lower() == 'true' else 'development',
             'services': {
                 'database': db_check,
                 'redis': redis_check,
