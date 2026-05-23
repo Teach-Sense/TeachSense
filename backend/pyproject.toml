@@ -1,0 +1,16 @@
+[project]
+name = "teachsense-backend"
+version = "0.1.0"
+description = "TeachSense classroom intelligence backend (Django)"
+requires-python = ">=3.11"
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
