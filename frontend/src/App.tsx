@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Session from "./pages/Session";
 import History from "./pages/History";
@@ -11,6 +12,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/student/:sessionId" element={<StudentView />} />
       <Route
         path="/dashboard"

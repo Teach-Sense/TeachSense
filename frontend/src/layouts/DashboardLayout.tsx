@@ -8,7 +8,7 @@ type Props = {
 
 const DashboardLayout = ({ children, title }: Props) => {
   return (
-    <div className="flex min-h-screen bg-[#f7f7f5]">
+    <div className="flex min-h-screen bg-[#f4faf5]">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Topbar title={title} />

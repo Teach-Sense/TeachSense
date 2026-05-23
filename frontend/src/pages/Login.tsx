@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { GraduationCap, AlertCircle } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { GraduationCap, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { authAPI } from "../services/api";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,65 +17,76 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { data } = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        { email, password }
-      );
-
-      localStorage.setItem("lecturerInfo", JSON.stringify(data));
+      const { data } = await authAPI.login(email, password);
+      // Django returns { access, refresh } + user info
+      localStorage.setItem("lecturerInfo", JSON.stringify({
+        id: data.user?.id,
+        name: data.user?.name || data.user?.username || email.split("@")[0],
+        email: data.user?.email || email,
+        access: data.access,
+        refresh: data.refresh,
+      }));
       navigate("/dashboard");
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Login failed. Please try again.");
-      } else {
-        setError("Login failed. Please try again.");
-      }
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.response?.data?.non_field_errors?.[0] ||
+        "Login failed. Please check your credentials.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
+    <div className="min-h-screen bg-[#071a09] flex">
       {/* Left panel */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#b8f729] rounded-xl flex items-center justify-center">
-            <GraduationCap size={20} className="text-black" />
+      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-[#1a3d1c] relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-20 left-20 w-64 h-64 bg-[#2d9e3c]/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-48 h-48 bg-[#5cce6a]/8 rounded-full blur-2xl" />
+        </div>
+
+        <div className="relative flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#5cce6a] to-[#2d9e3c] rounded-xl flex items-center justify-center shadow-lg shadow-green-900/50">
+            <GraduationCap size={20} className="text-white" />
           </div>
           <span className="text-white font-mono font-bold text-xl">TeachSense</span>
         </div>
 
-        <div>
-          <p className="text-white/20 text-xs font-mono uppercase tracking-widest mb-4">
+        <div className="relative">
+          <p className="text-[#5cce6a]/50 text-xs font-mono uppercase tracking-widest mb-6">
             Classroom Intelligence
           </p>
-          <h2 className="text-5xl font-bold text-white leading-tight">
+          <h2 className="text-5xl font-bold text-white leading-tight mb-6">
             Turn lectures into
             <br />
-            <span className="text-[#b8f729]">measurable insights.</span>
+            <span className="text-[#5cce6a]">measurable insights.</span>
           </h2>
-          <p className="text-white/40 mt-4 text-base leading-relaxed max-w-sm">
+          <p className="text-white/40 text-base leading-relaxed max-w-sm">
             Capture, transcribe, and analyse every session. Track teaching effectiveness over time.
           </p>
         </div>
 
-        <div className="flex gap-8">
+        <div className="relative flex gap-6">
           {["Speech-to-Text", "AI Summaries", "Quiz Generation"].map((tag) => (
-            <div key={tag} className="text-white/20 text-xs font-mono">
-              ✦ {tag}
+            <div key={tag} className="flex items-center gap-2 text-white/20 text-xs font-mono">
+              <div className="w-1 h-1 rounded-full bg-[#5cce6a]/40" />
+              {tag}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right panel - Login form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      {/* Right panel */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-[#0a0a0a]">
         <div className="w-full max-w-sm">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-8 lg:hidden">
-              <div className="w-8 h-8 bg-[#b8f729] rounded-lg flex items-center justify-center">
-                <GraduationCap size={18} className="text-black" />
+              <div className="w-8 h-8 bg-gradient-to-br from-[#5cce6a] to-[#2d9e3c] rounded-lg flex items-center justify-center">
+                <GraduationCap size={18} className="text-white" />
               </div>
               <span className="text-white font-mono font-bold">TeachSense</span>
             </div>
@@ -91,7 +103,7 @@ const Login = () => {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-white/50 text-xs font-mono uppercase tracking-widest mb-2">
+              <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
                 Email
               </label>
               <input
@@ -100,32 +112,48 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#b8f729]/50 focus:bg-white/8 transition-all text-sm"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 focus:bg-white/8 transition-all text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-white/50 text-xs font-mono uppercase tracking-widest mb-2">
+              <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#b8f729]/50 transition-all text-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#b8f729] text-black py-3 rounded-xl font-bold text-sm hover:bg-[#c8ff30] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white py-3 rounded-xl font-bold text-sm hover:from-[#3dae4c] hover:to-[#6cde7a] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-green-900/30"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
+
+          <p className="text-center text-white/30 text-sm mt-6">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-[#5cce6a] hover:text-[#7dde8a] transition font-medium">
+              Register
+            </Link>
+          </p>
 
           <p className="text-white/20 text-xs font-mono text-center mt-8">
             TeachSense · Classroom Intelligence System

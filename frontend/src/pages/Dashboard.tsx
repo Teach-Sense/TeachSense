@@ -1,60 +1,59 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { Plus, Play, Square, Upload, ChevronRight, Loader2, BookOpen, BarChart2 } from "lucide-react";
+import { Plus, Play, Square, ChevronRight, Loader2, BookOpen, BarChart2, CheckCircle2 } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
-import type { Session, LecturerInfo } from "../types/session";
+import { sessionsAPI, dashboardAPI } from "../services/api";
+import type { Session, DashboardOverview, LecturerInfo } from "../types/session";
+
+const statusStyle: Record<string, string> = {
+  active: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  completed: "bg-gray-100 text-gray-500 border-gray-200",
+  pending: "bg-amber-100 text-amber-700 border-amber-200",
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const lecturerInfo: LecturerInfo | null = JSON.parse(
     localStorage.getItem("lecturerInfo") || "null"
   );
 
-  // Safe redirect if no token
   useEffect(() => {
-    if (!lecturerInfo?.token) {
-      navigate("/");
-    }
-  }, [lecturerInfo?.token, navigate]);
+    if (!lecturerInfo?.access) navigate("/");
+  }, []);
 
-  const authHeaders = useMemo(
-    () => ({ Authorization: `Bearer ${lecturerInfo?.token}` }),
-    [lecturerInfo?.token]
-  );
-
-  const fetchSessions = useCallback(async () => {
-    if (!lecturerInfo?.token) return;
+  const fetchData = useCallback(async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/sessions", {
-        headers: authHeaders,
-      });
-      setSessions(data);
+      const [sessionsRes, overviewRes] = await Promise.all([
+        sessionsAPI.getAll(),
+        dashboardAPI.getOverview(),
+      ]);
+      setSessions(sessionsRes.data);
+      setOverview(overviewRes.data);
     } catch (error) {
-      console.error("Failed to fetch sessions:", error);
+      console.error("Failed to fetch data:", error);
     } finally {
       setLoading(false);
     }
-  }, [lecturerInfo?.token, authHeaders]);
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const createSession = async () => {
     if (!title.trim()) return;
     setCreating(true);
     try {
-      await axios.post(
-        "http://localhost:5000/api/sessions",
-        { title },
-        { headers: authHeaders }
-      );
+      const { data } = await sessionsAPI.create(title);
       setTitle("");
-      await fetchSessions();
+      setSessions((prev) => [data, ...prev]);
     } catch (error) {
       console.error("Failed to create session:", error);
     } finally {
@@ -62,59 +61,16 @@ const Dashboard = () => {
     }
   };
 
-  const startSession = async (id: string) => {
+  const updateStatus = async (id: number, status: string) => {
     try {
-      await axios.put(`http://localhost:5000/api/sessions/${id}/start`, {}, { headers: authHeaders });
-      fetchSessions();
+      await sessionsAPI.update(id, { status });
+      fetchData();
     } catch (error) {
       console.error(error);
     }
   };
-
-  const endSession = async (id: string) => {
-    try {
-      await axios.put(`http://localhost:5000/api/sessions/${id}/end`, {}, { headers: authHeaders });
-      fetchSessions();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const uploadAudio = async (id: string, file: File) => {
-    setUploadingId(id);
-    try {
-      const formData = new FormData();
-      formData.append("audio", file);
-
-      await axios.post(`http://localhost:5000/api/upload/${id}`, formData, {
-        headers: {
-          ...authHeaders,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      fetchSessions();
-    } catch (error) {
-      console.error("Upload failed:", error);
-    } finally {
-      setUploadingId(null);
-    }
-  };
-
-  useEffect(() => {
-    setTimeout(() => {
-      fetchSessions();
-    }, 0);
-  }, [fetchSessions]);
 
   const completedSessions = sessions.filter((s) => s.status === "completed");
-  // const activeSessions = sessions.filter((s) => s.status === "active");
-
-  const statusStyle = {
-    active: "bg-green-100 text-green-700 border-green-200",
-    completed: "bg-gray-100 text-gray-500 border-gray-200",
-    pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  };
 
   return (
     <DashboardLayout title="Dashboard">
@@ -125,24 +81,25 @@ const Dashboard = () => {
           <StatCard
             title="Total Sessions"
             value={String(sessions.length)}
-            icon={<BookOpen size={18} />}
+            icon={<BookOpen size={16} />}
           />
           <StatCard
             title="Completed"
             value={String(completedSessions.length)}
-            accent="text-[#2d7f3c]"
-            icon={<BarChart2 size={18} />}
+            accent="text-[#2d9e3c]"
+            icon={<CheckCircle2 size={16} />}
           />
           <StatCard
             title="Teaching Score"
-            value={`${lecturerInfo?.teachingScore ?? 0}%`}
-            accent="text-[#b8a000]"
+            value={overview?.teaching_score ? `${overview.teaching_score}%` : "—"}
+            accent="text-amber-600"
+            icon={<BarChart2 size={16} />}
           />
         </div>
 
         {/* Create Session */}
         <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
-          <h2 className="text-sm font-mono uppercase tracking-widest text-gray-400 mb-4">
+          <h2 className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">
             New Session
           </h2>
           <div className="flex gap-3">
@@ -152,12 +109,12 @@ const Dashboard = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createSession()}
-              className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#b8f729]/40 focus:border-[#b8f729]"
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#5cce6a]/30 focus:border-[#5cce6a] transition"
             />
             <button
               onClick={createSession}
               disabled={creating || !title.trim()}
-              className="flex items-center gap-2 bg-[#0a0a0a] text-white px-5 py-3 rounded-xl text-sm font-medium hover:bg-gray-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-5 py-3 rounded-xl text-sm font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-green-200"
             >
               {creating ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
               Create
@@ -167,7 +124,7 @@ const Dashboard = () => {
 
         {/* Sessions List */}
         <div>
-          <h2 className="text-sm font-mono uppercase tracking-widest text-gray-400 mb-4">
+          <h2 className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">
             Lecture Sessions
           </h2>
 
@@ -185,8 +142,8 @@ const Dashboard = () => {
             <div className="space-y-3">
               {sessions.map((session) => (
                 <div
-                  key={session._id}
-                  className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+                  key={session.id}
+                  className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all hover:border-[#5cce6a]/20"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -196,14 +153,14 @@ const Dashboard = () => {
                         </h3>
                         <span
                           className={`shrink-0 text-xs font-mono px-2 py-0.5 rounded-full border capitalize ${
-                            statusStyle[session.status as keyof typeof statusStyle]
+                            statusStyle[session.status] ?? statusStyle.pending
                           }`}
                         >
                           {session.status}
                         </span>
                       </div>
                       <p className="text-xs text-gray-400 font-mono">
-                        {new Date(session.createdAt).toLocaleDateString("en-GB", {
+                        {new Date(session.created_at).toLocaleDateString("en-GB", {
                           day: "numeric",
                           month: "short",
                           year: "numeric",
@@ -211,49 +168,23 @@ const Dashboard = () => {
                           minute: "2-digit",
                         })}
                       </p>
-
-                      {session.audioUrl && (
-                        <p className="text-xs text-blue-500 font-mono mt-1">✓ Audio uploaded</p>
-                      )}
-
-                      {session.summary && (
-                        <div className="mt-3 bg-gray-50 border border-gray-100 p-3 rounded-xl">
-                          <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-1">
-                            AI Summary
-                          </p>
-                          <p className="text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap">
-                            {session.summary}
-                          </p>
-                        </div>
-                      )}
-
-                      {session.questions && (
-                        <div className="mt-3 bg-blue-50 border border-blue-100 p-3 rounded-xl">
-                          <p className="text-xs font-mono text-blue-400 uppercase tracking-widest mb-1">
-                            Quiz Questions
-                          </p>
-                          <p className="text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap">
-                            {session.questions}
-                          </p>
-                        </div>
-                      )}
                     </div>
 
                     {/* Actions */}
                     <div className="flex flex-col gap-2 shrink-0">
                       {session.status === "pending" && (
                         <button
-                          onClick={() => startSession(session._id)}
-                          className="flex items-center gap-2 bg-[#b8f729] text-black px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#c8ff30] transition"
+                          onClick={() => updateStatus(session.id, "active")}
+                          className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-4 py-2 rounded-lg text-xs font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition"
                         >
-                          <Play size={12} fill="black" />
+                          <Play size={12} fill="white" />
                           Start
                         </button>
                       )}
 
                       {session.status === "active" && (
                         <button
-                          onClick={() => endSession(session._id)}
+                          onClick={() => updateStatus(session.id, "completed")}
                           className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-600 transition"
                         >
                           <Square size={12} fill="white" />
@@ -261,28 +192,10 @@ const Dashboard = () => {
                         </button>
                       )}
 
-                      <label className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-700 transition">
-                        {uploadingId === session._id ? (
-                          <Loader2 size={12} className="animate-spin" />
-                        ) : (
-                          <Upload size={12} />
-                        )}
-                        {uploadingId === session._id ? "Processing..." : "Upload Audio"}
-                        <input
-                          type="file"
-                          accept="audio/*"
-                          hidden
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) uploadAudio(session._id, file);
-                          }}
-                        />
-                      </label>
-
                       {session.status === "completed" && (
                         <button
-                          onClick={() => navigate(`/student/${session._id}`)}
-                          className="flex items-center gap-2 border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 transition"
+                          onClick={() => navigate(`/session/${session.id}`)}
+                          className="flex items-center gap-2 border border-[#5cce6a]/30 text-[#2d9e3c] px-4 py-2 rounded-lg text-xs font-medium hover:bg-[#f0fdf4] transition"
                         >
                           View Results
                           <ChevronRight size={12} />

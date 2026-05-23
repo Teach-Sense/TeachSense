@@ -1,92 +1,99 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { Play, Square, Upload, Loader2, ArrowLeft, Mic } from "lucide-react";
+import { Play, Square, Upload, Loader2, ArrowLeft, Mic, FileText, HelpCircle } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
-import type { Session, LecturerInfo } from "../types/session";
+import { sessionsAPI, transcriptsAPI, questionsAPI, analyticsAPI } from "../services/api";
+import type { Session, Transcript, Question, Analytics } from "../types/session";
 
 const SessionPage = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const id = Number(sessionId);
 
   const [session, setSession] = useState<Session | null>(null);
+  const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [transcriptText, setTranscriptText] = useState("");
+  const [submittingTranscript, setSubmittingTranscript] = useState(false);
 
-  const lecturerInfo: LecturerInfo | null = JSON.parse(
-    localStorage.getItem("lecturerInfo") || "null"
-  );
-
-  const authHeaders = useMemo(
-    () => ({ Authorization: `Bearer ${lecturerInfo?.token}` }),
-    [lecturerInfo?.token]
-  );
-
-  const fetchSession = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
+    if (!id) return;
     try {
-      const { data } = await axios.get("http://localhost:5000/api/sessions", {
-        headers: authHeaders,
-      });
-      const found = data.find((s: Session) => s._id === sessionId);
-      setSession(found || null);
+      const [sessionRes, transcriptRes, questionsRes] = await Promise.all([
+        sessionsAPI.getOne(id),
+        transcriptsAPI.getAll(id),
+        questionsAPI.getAll(id),
+      ]);
+      setSession(sessionRes.data);
+      setTranscripts(transcriptRes.data);
+      setQuestions(questionsRes.data);
+
+      // fetch analytics only for completed sessions
+      if (sessionRes.data.status === "completed") {
+        try {
+          const analyticsRes = await analyticsAPI.getSession(id);
+          setAnalytics(analyticsRes.data);
+        } catch {
+          // analytics may not exist yet
+        }
+      }
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
-  }, [authHeaders, sessionId]);
+  }, [id]);
 
-  const startSession = async () => {
-    if (!sessionId) return;
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const updateStatus = async (status: string) => {
     try {
-      await axios.put(`http://localhost:5000/api/sessions/${sessionId}/start`, {}, { headers: authHeaders });
-      fetchSession();
+      await sessionsAPI.update(id, { status });
+      fetchAll();
     } catch (error) {
       console.error(error);
     }
   };
 
-  const endSession = async () => {
-    if (!sessionId) return;
+  const submitTranscript = async () => {
+    if (!transcriptText.trim()) return;
+    setSubmittingTranscript(true);
     try {
-      await axios.put(`http://localhost:5000/api/sessions/${sessionId}/end`, {}, { headers: authHeaders });
-      fetchSession();
+      await transcriptsAPI.create(id, transcriptText);
+      setTranscriptText("");
+      fetchAll();
     } catch (error) {
-      console.error(error);
+      console.error("Failed to submit transcript:", error);
+    } finally {
+      setSubmittingTranscript(false);
     }
   };
 
-  const uploadAudio = async (file: File) => {
-    if (!sessionId) return;
+  const uploadAudioFile = async (file: File) => {
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("audio", file);
-
-      await axios.post(`http://localhost:5000/api/upload/${sessionId}`, formData, {
-        headers: { ...authHeaders, "Content-Type": "multipart/form-data" },
-      });
-
-      fetchSession();
+      // Read file as text (for text-based transcripts) or send content
+      const text = await file.text();
+      await transcriptsAPI.create(id, text);
+      fetchAll();
     } catch (error) {
-      console.error(error);
+      console.error("Upload failed:", error);
     } finally {
       setUploading(false);
     }
   };
-
-  useEffect(() => {
-    setTimeout(() => {
-      fetchSession();
-    }, 0);
-  }, [fetchSession]);
 
   return (
     <DashboardLayout title="Session Control">
       <div className="max-w-3xl mx-auto space-y-6">
         <button
           onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition"
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#2d9e3c] transition"
         >
           <ArrowLeft size={15} /> Back to Dashboard
         </button>
@@ -103,32 +110,38 @@ const SessionPage = () => {
             <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-1">
-                    Session
-                  </p>
+                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-1">Session</p>
                   <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
-                  <p className="text-sm text-gray-400 mt-1 font-mono">ID: {session._id}</p>
+                  <p className="text-sm text-gray-400 mt-1 font-mono">ID: {session.id}</p>
                 </div>
-
                 <span
                   className={`text-xs font-mono px-3 py-1 rounded-full border capitalize ${
                     session.status === "active"
-                      ? "bg-green-100 text-green-700 border-green-200"
+                      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                       : session.status === "completed"
                       ? "bg-gray-100 text-gray-500 border-gray-200"
-                      : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                      : "bg-amber-100 text-amber-700 border-amber-200"
                   }`}
                 >
                   {session.status}
                 </span>
               </div>
 
-              {/* Live indicator */}
               {session.status === "active" && (
-                <div className="flex items-center gap-2 mt-4 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
-                  <Mic size={15} className="text-green-600 animate-pulse" />
-                  <span className="text-sm text-green-700 font-medium">
+                <div className="flex items-center gap-2 mt-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                  <Mic size={15} className="text-emerald-600 animate-pulse" />
+                  <span className="text-sm text-emerald-700 font-medium">
                     Session is live — recording in progress
+                  </span>
+                </div>
+              )}
+
+              {/* Analytics score if completed */}
+              {analytics?.comprehension_score !== undefined && (
+                <div className="mt-4 bg-gradient-to-r from-[#f0fdf4] to-[#e8fbed] border border-[#5cce6a]/20 rounded-xl px-5 py-4 flex items-center justify-between">
+                  <span className="text-sm text-[#2d9e3c] font-medium">Comprehension Score</span>
+                  <span className="text-3xl font-bold font-mono text-[#2d9e3c]">
+                    {analytics.comprehension_score}%
                   </span>
                 </div>
               )}
@@ -136,22 +149,20 @@ const SessionPage = () => {
 
             {/* Controls */}
             <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-              <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4">
-                Controls
-              </p>
+              <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4">Controls</p>
               <div className="flex flex-wrap gap-3">
                 {session.status === "pending" && (
                   <button
-                    onClick={startSession}
-                    className="flex items-center gap-2 bg-[#b8f729] text-black px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#c8ff30] transition"
+                    onClick={() => updateStatus("active")}
+                    className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-6 py-3 rounded-xl text-sm font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition shadow-md shadow-green-200"
                   >
-                    <Play size={15} fill="black" /> Start Session
+                    <Play size={15} fill="white" /> Start Session
                   </button>
                 )}
 
                 {session.status === "active" && (
                   <button
-                    onClick={endSession}
+                    onClick={() => updateStatus("completed")}
                     className="flex items-center gap-2 bg-red-500 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-red-600 transition"
                   >
                     <Square size={15} fill="white" /> End Session
@@ -164,51 +175,81 @@ const SessionPage = () => {
                   ) : (
                     <Upload size={15} />
                   )}
-                  {uploading ? "Processing audio..." : "Upload Audio"}
+                  {uploading ? "Processing..." : "Upload Transcript File"}
                   <input
                     type="file"
-                    accept="audio/*"
+                    accept=".txt,.doc,.docx"
                     hidden
                     disabled={uploading}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) uploadAudio(file);
+                      if (file) uploadAudioFile(file);
                     }}
                   />
                 </label>
               </div>
             </div>
 
-            {/* Results */}
-            {session.transcript && (
+            {/* Manual Transcript Entry */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-3">
+                Add Transcript
+              </p>
+              <textarea
+                rows={4}
+                value={transcriptText}
+                onChange={(e) => setTranscriptText(e.target.value)}
+                placeholder="Paste or type lecture transcript here..."
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#5cce6a]/30 focus:border-[#5cce6a] transition resize-none"
+              />
+              <button
+                onClick={submitTranscript}
+                disabled={submittingTranscript || !transcriptText.trim()}
+                className="mt-3 flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:from-[#3dae4c] hover:to-[#6cde7a] transition shadow-md shadow-green-200"
+              >
+                {submittingTranscript ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                Submit Transcript
+              </button>
+            </div>
+
+            {/* Transcripts */}
+            {transcripts.length > 0 && (
               <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-3">
-                  Transcript
-                </p>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {session.transcript}
-                </p>
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText size={15} className="text-[#2d9e3c]" />
+                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">Transcripts</p>
+                </div>
+                {transcripts.map((t) => (
+                  <p key={t.id} className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mb-3 last:mb-0">
+                    {t.content}
+                  </p>
+                ))}
               </div>
             )}
 
-            {session.summary && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-3">
-                  AI Summary
-                </p>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {session.summary}
-                </p>
+            {/* Questions */}
+            {questions.length > 0 && (
+              <div className="bg-[#f0fdf4] border border-[#5cce6a]/20 rounded-2xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <HelpCircle size={15} className="text-[#2d9e3c]" />
+                  <p className="text-xs font-mono text-[#2d9e3c] uppercase tracking-widest">Generated Questions</p>
+                </div>
+                <div className="space-y-3">
+                  {questions.map((q, i) => (
+                    <div key={q.id} className="bg-white rounded-xl p-4 border border-[#5cce6a]/10">
+                      <p className="text-sm text-gray-700 font-medium">{i + 1}. {q.text}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {session.questions && (
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6">
-                <p className="text-xs font-mono text-blue-400 uppercase tracking-widest mb-3">
-                  Generated Quiz Questions
-                </p>
+            {/* Analytics Summary */}
+            {analytics?.summary && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-3">AI Summary</p>
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {session.questions}
+                  {analytics.summary}
                 </p>
               </div>
             )}
