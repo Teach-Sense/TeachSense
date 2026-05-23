@@ -162,6 +162,7 @@ SPECTACULAR_SETTINGS = {
 	"TITLE": "TeachSense API",
 	"DESCRIPTION": "TeachSense classroom intelligence backend API",
 	"VERSION": "0.1.0",
+	"DISABLE_ERRORS_AND_WARNINGS": env_bool("SPECTACULAR_DISABLE_WARNINGS", True),
 }
 
 # JWT Configuration

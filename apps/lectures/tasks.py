@@ -55,7 +55,7 @@ def process_lecture_session(self, session_id: int):
 
         # Initialize orchestrator with ensemble
         ensemble_config = EnsembleConfig(
-            primary_models=["gpt-4-mini", "claude-3-sonnet"],
+            primary_models=["claude-3-sonnet", "mistral-medium"],
             merge_strategy=MergeStrategy.WEIGHTED_AVERAGE,
         )
         # TODO: Initialize actual LLM providers from config
@@ -90,7 +90,7 @@ def process_lecture_session(self, session_id: int):
                         "structured_summary": processing_result.summary,
                         "key_concepts": [],  # Parse from summary if structured
                         "important_points": [],
-                        "models_used": ["gpt-4-mini", "claude-3-sonnet"],
+                        "models_used": ["claude-3-sonnet", "mistral-medium"],
                     },
                 )
                 summary_obj.save()

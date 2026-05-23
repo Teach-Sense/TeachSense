@@ -27,10 +27,10 @@ class EnsembleConfig:
     """Configuration for LLM ensemble."""
     # Models to include in ensemble
     primary_models: List[str] = field(
-        default_factory=lambda: ["gpt-4-mini", "claude-3-sonnet", "open-mistral"]
+        default_factory=lambda: ["claude-3-sonnet", "mistral-medium"]
     )
     fallback_models: List[str] = field(
-        default_factory=lambda: ["gpt-3.5-turbo"]
+        default_factory=lambda: ["mistral-small"]
     )
     # Merging strategy
     merge_strategy: MergeStrategy = MergeStrategy.WEIGHTED_AVERAGE
