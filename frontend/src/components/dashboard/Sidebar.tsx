@@ -4,6 +4,7 @@ import { LayoutDashboard, Clock, GraduationCap, Cpu } from "lucide-react";
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/history", label: "History", icon: Clock },
+  { to: "/devices", label: "Devices", icon: Cpu },
 ];
 
 const Sidebar = () => {

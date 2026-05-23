@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Session from "./pages/Session";
 import History from "./pages/History";
+import Devices from "./pages/Devices";
 import StudentView from "./pages/StudentView";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -35,6 +36,14 @@ function App() {
         element={
           <ProtectedRoute>
             <History />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/devices"
+        element={
+          <ProtectedRoute>
+            <Devices />
           </ProtectedRoute>
         }
       />
