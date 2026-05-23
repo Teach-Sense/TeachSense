@@ -1,0 +1,91 @@
+# Environment & Secrets (NEVER commit these)
+.env
+.env.local
+.env.*.local
+.env.*.example
+*.pem
+*.key
+*.cert
+*.p12
+
+# Python & Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+.Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.egg
+.eggs/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+.tox/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+/staticfiles
+/media
+local_settings.py
+*.log
+
+# IDE & Editors
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+.editorconfig
+
+# Development & Temporary
+logs/
+temp/
+tmp/
+local/
+*.bak
+*.backup
+
+# Uploads (user-generated content)
+uploads/
+media/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Node modules (if frontend in mono-repo)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Testing
+.hypothesis/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Backup & temporary files
+*.tmp
+*.temp
+*.orig
+*.rej
