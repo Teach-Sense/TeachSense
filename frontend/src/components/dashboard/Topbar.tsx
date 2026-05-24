@@ -18,20 +18,24 @@ const Topbar = ({ title = "Dashboard" }: Props) => {
     try {
       await authAPI.logout();
     } catch {
-      // ignore logout errors
+      // ignore errors
     } finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("lecturerInfo");
       navigate("/");
     }
   };
 
+  const fullName = lecturerInfo
+    ? `${lecturerInfo.first_name} ${lecturerInfo.last_name}`.trim() || lecturerInfo.email
+    : "Lecturer";
+
   return (
     <div className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center">
       <div className="flex items-center gap-3">
         <div className="w-1 h-6 bg-gradient-to-b from-[#2d9e3c] to-[#5cce6a] rounded-full" />
-        <h2 className="text-lg font-semibold text-gray-800 font-mono tracking-tight">
-          {title}
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-800 font-mono tracking-tight">{title}</h2>
       </div>
 
       <div className="flex items-center gap-4">
@@ -40,9 +44,7 @@ const Topbar = ({ title = "Dashboard" }: Props) => {
             <User size={13} className="text-white" />
           </div>
           <div className="text-right">
-            <p className="text-sm font-semibold text-gray-800 leading-none">
-              {lecturerInfo?.name || "Lecturer"}
-            </p>
+            <p className="text-sm font-semibold text-gray-800 leading-none">{fullName}</p>
             <p className="text-xs text-gray-400 mt-0.5">{lecturerInfo?.email}</p>
           </div>
         </div>

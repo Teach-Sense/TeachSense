@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { GraduationCap, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { authAPI } from "../services/api";
+import { authAPI, getErrorMessage } from "../services/api";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -18,20 +18,14 @@ const Login = () => {
 
     try {
       const { data } = await authAPI.login(email, password);
-      // Only store user info — tokens are handled via HTTP-only cookies by the backend
-      localStorage.setItem("lecturerInfo", JSON.stringify({
-        id: data.user?.id,
-        name: data.user?.name || data.user?.username || email.split("@")[0],
-        email: data.user?.email || email,
-      }));
+      // Store tokens separately
+      localStorage.setItem("accessToken", data.access);
+      localStorage.setItem("refreshToken", data.refresh);
+      // Store user info
+      localStorage.setItem("lecturerInfo", JSON.stringify(data.user));
       navigate("/dashboard");
     } catch (err: any) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        err.response?.data?.non_field_errors?.[0] ||
-        "Login failed. Please check your credentials.";
-      setError(msg);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -41,7 +35,6 @@ const Login = () => {
     <div className="min-h-screen bg-[#071a09] flex">
       {/* Left panel */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-[#1a3d1c] relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-20 left-20 w-64 h-64 bg-[#2d9e3c]/10 rounded-full blur-3xl" />
           <div className="absolute bottom-20 right-10 w-48 h-48 bg-[#5cce6a]/8 rounded-full blur-2xl" />
@@ -110,7 +103,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 focus:bg-white/8 transition-all text-sm"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
               />
             </div>
 
@@ -145,13 +138,6 @@ const Login = () => {
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
-
-          <p className="text-center text-white/30 text-sm mt-6">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-[#5cce6a] hover:text-[#7dde8a] transition font-medium">
-              Register
-            </Link>
-          </p>
 
           <p className="text-white/20 text-xs font-mono text-center mt-8">
             TeachSense · Classroom Intelligence System

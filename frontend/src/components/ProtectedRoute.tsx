@@ -5,12 +5,8 @@ type Props = {
 };
 
 const ProtectedRoute = ({ children }: Props) => {
-  const info = JSON.parse(localStorage.getItem("lecturerInfo") || "null");
-
-  if (!info?.email) {
-    return <Navigate to="/" replace />;
-  }
-
+  const token = localStorage.getItem("accessToken");
+  if (!token) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 

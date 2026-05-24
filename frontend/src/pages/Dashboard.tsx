@@ -4,38 +4,40 @@ import { Plus, Play, Square, ChevronRight, Loader2, BookOpen, BarChart2, CheckCi
 import DashboardLayout from "../layouts/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import { sessionsAPI, dashboardAPI } from "../services/api";
-import type { Session, DashboardOverview, LecturerInfo } from "../types/session";
+import type { Session, DashboardMetrics } from "../types/session";
 
 const statusStyle: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  ongoing: "bg-emerald-100 text-emerald-700 border-emerald-200",
   completed: "bg-gray-100 text-gray-500 border-gray-200",
-  pending: "bg-amber-100 text-amber-700 border-amber-200",
+  scheduled: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
-  const lecturerInfo: LecturerInfo | null = JSON.parse(
-    localStorage.getItem("lecturerInfo") || "null"
-  );
-
-  useEffect(() => {
-    if (!lecturerInfo?.access) navigate("/");
-  }, []);
-
   const fetchData = useCallback(async () => {
     try {
-      const [sessionsRes, overviewRes] = await Promise.all([
-        sessionsAPI.getAll(),
-        dashboardAPI.getOverview(),
-      ]);
-      setSessions(sessionsRes.data);
-      setOverview(overviewRes.data);
+      const sessionsRes = await sessionsAPI.getAll();
+      // Handle paginated response
+      const data = sessionsRes.data;
+      setSessions(data.results ?? data);
+
+      // Try to get dashboard metrics
+      try {
+        const dashRes = await dashboardAPI.getAll();
+        const dashboards = dashRes.data.results ?? dashRes.data;
+        if (dashboards.length > 0) {
+          const metricsRes = await dashboardAPI.getMetrics(dashboards[0].id);
+          setMetrics(metricsRes.data);
+        }
+      } catch {
+        // metrics optional
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
@@ -90,8 +92,8 @@ const Dashboard = () => {
             icon={<CheckCircle2 size={16} />}
           />
           <StatCard
-            title="Teaching Score"
-            value={overview?.teaching_score ? `${overview.teaching_score}%` : "—"}
+            title="Avg Engagement"
+            value={metrics?.avg_engagement ? `${metrics.avg_engagement}` : "—"}
             accent="text-amber-600"
             icon={<BarChart2 size={16} />}
           />
@@ -99,9 +101,7 @@ const Dashboard = () => {
 
         {/* Create Session */}
         <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
-          <h2 className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">
-            New Session
-          </h2>
+          <h2 className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">New Session</h2>
           <div className="flex gap-3">
             <input
               type="text"
@@ -124,14 +124,11 @@ const Dashboard = () => {
 
         {/* Sessions List */}
         <div>
-          <h2 className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">
-            Lecture Sessions
-          </h2>
+          <h2 className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">Lecture Sessions</h2>
 
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-400">
-              <Loader2 size={24} className="animate-spin mr-3" />
-              Loading sessions...
+              <Loader2 size={24} className="animate-spin mr-3" /> Loading sessions...
             </div>
           ) : sessions.length === 0 ? (
             <div className="bg-white border border-dashed border-gray-200 rounded-2xl py-16 text-center text-gray-400">
@@ -148,47 +145,44 @@ const Dashboard = () => {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-base font-semibold text-gray-900 truncate">
-                          {session.title}
-                        </h3>
-                        <span
-                          className={`shrink-0 text-xs font-mono px-2 py-0.5 rounded-full border capitalize ${
-                            statusStyle[session.status] ?? statusStyle.pending
-                          }`}
-                        >
+                        <h3 className="text-base font-semibold text-gray-900 truncate">{session.title}</h3>
+                        <span className={`shrink-0 text-xs font-mono px-2 py-0.5 rounded-full border capitalize ${statusStyle[session.status] ?? statusStyle.scheduled}`}>
                           {session.status}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 font-mono">
-                        {new Date(session.created_at).toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
+                      <div className="flex items-center gap-3 text-xs text-gray-400 font-mono">
+                        {session.started_at && (
+                          <span>{new Date(session.started_at).toLocaleDateString("en-GB", {
+                            day: "numeric", month: "short", year: "numeric",
+                          })}</span>
+                        )}
+                        {session.participant_count !== undefined && (
+                          <span>· {session.participant_count} participants</span>
+                        )}
+                        {session.session_code && (
+                          <span className="bg-gray-100 px-2 py-0.5 rounded-md">
+                            Code: {session.session_code}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      {session.status === "pending" && (
+                      {session.status === "scheduled" && (
                         <button
-                          onClick={() => updateStatus(session.id, "active")}
+                          onClick={() => updateStatus(session.id, "ongoing")}
                           className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-4 py-2 rounded-lg text-xs font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition"
                         >
-                          <Play size={12} fill="white" />
-                          Start
+                          <Play size={12} fill="white" /> Start
                         </button>
                       )}
 
-                      {session.status === "active" && (
+                      {session.status === "ongoing" && (
                         <button
                           onClick={() => updateStatus(session.id, "completed")}
                           className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-600 transition"
                         >
-                          <Square size={12} fill="white" />
-                          End
+                          <Square size={12} fill="white" /> End
                         </button>
                       )}
 
@@ -197,8 +191,7 @@ const Dashboard = () => {
                           onClick={() => navigate(`/session/${session.id}`)}
                           className="flex items-center gap-2 border border-[#5cce6a]/30 text-[#2d9e3c] px-4 py-2 rounded-lg text-xs font-medium hover:bg-[#f0fdf4] transition"
                         >
-                          View Results
-                          <ChevronRight size={12} />
+                          View Results <ChevronRight size={12} />
                         </button>
                       )}
                     </div>
