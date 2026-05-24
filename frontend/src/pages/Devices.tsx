@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Cpu, Wifi, WifiOff, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Plus, Cpu, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import api from "../services/api";
 
