@@ -18,13 +18,11 @@ const Login = () => {
 
     try {
       const { data } = await authAPI.login(email, password);
-      // Django returns { access, refresh } + user info
+      // Only store user info — tokens are handled via HTTP-only cookies by the backend
       localStorage.setItem("lecturerInfo", JSON.stringify({
         id: data.user?.id,
         name: data.user?.name || data.user?.username || email.split("@")[0],
         email: data.user?.email || email,
-        access: data.access,
-        refresh: data.refresh,
       }));
       navigate("/dashboard");
     } catch (err: any) {

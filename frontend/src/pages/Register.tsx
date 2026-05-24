@@ -8,9 +8,7 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,22 +17,12 @@ const Register = () => {
     setError("");
     setLoading(true);
 
-    if (password !== passwordConfirm) {
-      setError("Passwords do not match.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      await authAPI.register(name, email, password, passwordConfirm);
-      // After register, log them in automatically
-      const { data } = await authAPI.login(email, password);
+      await authAPI.register(name, email, password);
+      await authAPI.login(email, password);
       localStorage.setItem("lecturerInfo", JSON.stringify({
-        id: data.user?.id,
-        name: data.user?.name || name,
-        email: data.user?.email || email,
-        access: data.access,
-        refresh: data.refresh,
+        name,
+        email,
       }));
       navigate("/dashboard");
     } catch (err: any) {
@@ -43,7 +31,6 @@ const Register = () => {
         errData?.detail ||
         errData?.email?.[0] ||
         errData?.password?.[0] ||
-        errData?.password_confirm?.[0] ||
         errData?.name?.[0] ||
         errData?.message ||
         "Registration failed. Please try again.";
@@ -123,30 +110,6 @@ const Register = () => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
-              Confirm Password
-            </label>
-            <div className="relative">
-              <input
-                type={showPasswordConfirm ? "text" : "password"}
-                placeholder="••••••••"
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
-                required
-                minLength={8}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition"
-              >
-                {showPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>

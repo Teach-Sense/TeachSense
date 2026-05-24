@@ -1,16 +1,13 @@
 import { Navigate } from "react-router-dom";
-import type { LecturerInfo } from "../types/session";
 
 type Props = {
   children: React.ReactNode;
 };
 
 const ProtectedRoute = ({ children }: Props) => {
-  const info: LecturerInfo | null = JSON.parse(
-    localStorage.getItem("lecturerInfo") || "null"
-  );
+  const info = JSON.parse(localStorage.getItem("lecturerInfo") || "null");
 
-  if (!info?.access) {
+  if (!info?.email) {
     return <Navigate to="/" replace />;
   }
 
