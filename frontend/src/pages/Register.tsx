@@ -60,8 +60,7 @@ const Register = () => {
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-          <div>
+     <div>
   <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
     Username
   </label>
@@ -74,7 +73,6 @@ const Register = () => {
     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
   />
 </div>
-          </div>
 
           <div>
             <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">

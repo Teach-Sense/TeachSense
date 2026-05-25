@@ -24,7 +24,6 @@ api.interceptors.response.use(
     const original = error.config;
     const status = error.response?.status;
 
-    // Handle token expiry — refresh and retry
     if (status === 401 && !original._retry) {
       original._retry = true;
       try {
@@ -40,7 +39,6 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle rate limiting — wait and retry once
     if (status === 429 && !original._rateLimitRetry) {
       original._rateLimitRetry = true;
       const retryAfter = error.response?.headers["retry-after"] || "60";
@@ -52,7 +50,6 @@ api.interceptors.response.use(
   }
 );
 
-// Helper to extract readable error message from any API error
 export const getErrorMessage = (err: any): string => {
   const data = err?.response?.data;
   if (!data) return "Network error. Check your connection.";
@@ -75,7 +72,6 @@ export const authAPI = {
   login: (email: string, password: string) =>
     api.post("/api/auth/login/", { email, password }),
 
-  // Register with first_name and last_name as per API docs
   register: (username: string, email: string, password: string, password_confirm: string) =>
     api.post("/api/auth/register/", { username, email, password, password_confirm }),
 
@@ -156,8 +152,8 @@ export const responsesAPI = {
 export const devicesAPI = {
   getAll: () => api.get("/api/devices/"),
 
- register: (username: string, email: string, password: string, password_confirm: string) =>
-  api.post("/api/auth/register/", { username, email, password, password_confirm }),
+  register: (name: string, type: string, protocol: string, device_key: string) =>
+    api.post("/api/devices/", { name, type, protocol, device_key }),
 
   update: (id: number, status: string) =>
     api.patch(`/api/devices/${id}/`, { status }),
