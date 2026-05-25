@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { authAPI, getErrorMessage } from "../services/api";
+import {  Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -138,6 +139,12 @@ const Login = () => {
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
+          <p className="text-center text-white/30 text-sm mt-6">
+  Don't have an account?{" "}
+  <Link to="/register" className="text-[#5cce6a] hover:text-[#7dde8a] transition font-medium">
+    Register
+  </Link>
+</p>
 
           <p className="text-white/20 text-xs font-mono text-center mt-8">
             TeachSense · Classroom Intelligence System

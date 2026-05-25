@@ -1,19 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { fetchSampleData } from '../services/api';
+import { useEffect, useState } from "react";
+import { healthAPI } from "../services/api";
 
-const SampleDataComponent: React.FC = () => {
+const SampleDataComponent = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSampleData()
-      .then((res: any) => {
-        setData(res);
+    healthAPI.check()
+      .then((res) => {
+        setData(res.data);
         setLoading(false);
       })
-      .catch((err: any) => {
-        setError(err.message || 'Error fetching data');
+      .catch((err) => {
+        setError(err.message || "Error fetching data");
         setLoading(false);
       });
   }, []);
@@ -23,7 +23,7 @@ const SampleDataComponent: React.FC = () => {
 
   return (
     <div>
-      <h2>Sample Data from Backend</h2>
+      <h2>Backend Health Status</h2>
       <pre>{JSON.stringify(data, null, 2)}</pre>
     </div>
   );

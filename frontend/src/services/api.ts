@@ -1,11 +1,11 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://teachsense.onrender.com";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
-  timeout: 30000, // 30 second timeout
+  timeout: 30000,
 });
 
 // Attach access token to every request
@@ -22,12 +22,10 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    const errorCode = error.response?.data?.code;
     const status = error.response?.status;
 
     // Handle token expiry — refresh and retry
-    if (status === 401 && !original._retry &&
-        (errorCode === "TOKEN_EXPIRED" || errorCode === "TOKEN_INVALID")) {
+    if (status === 401 && !original._retry) {
       original._retry = true;
       try {
         const refresh = localStorage.getItem("refreshToken");
@@ -37,7 +35,6 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${data.access}`;
         return api(original);
       } catch {
-        // Refresh failed — clear storage and redirect to login
         localStorage.clear();
         window.location.href = "/";
       }
@@ -51,12 +48,6 @@ api.interceptors.response.use(
       return api(original);
     }
 
-    // Handle invalid refresh token — force logout
-    if (errorCode === "INVALID_REFRESH_TOKEN" || errorCode === "ACCOUNT_DISABLED") {
-      localStorage.clear();
-      window.location.href = "/";
-    }
-
     return Promise.reject(error);
   }
 );
@@ -66,7 +57,6 @@ export const getErrorMessage = (err: any): string => {
   const data = err?.response?.data;
   if (!data) return "Network error. Check your connection.";
 
-  // Validation errors
   if (data.errors) {
     const firstField = Object.keys(data.errors)[0];
     return data.errors[firstField]?.[0] || "Validation failed.";
@@ -84,6 +74,10 @@ export const getErrorMessage = (err: any): string => {
 export const authAPI = {
   login: (email: string, password: string) =>
     api.post("/api/auth/login/", { email, password }),
+
+  // Register with first_name and last_name as per API docs
+  register: (username: string, email: string, password: string, password_confirm: string) =>
+    api.post("/api/auth/register/", { username, email, password, password_confirm }),
 
   logout: () =>
     api.post("/api/auth/logout/", {
@@ -162,8 +156,8 @@ export const responsesAPI = {
 export const devicesAPI = {
   getAll: () => api.get("/api/devices/"),
 
-  register: (name: string, type: string, protocol: string, device_key: string) =>
-    api.post("/api/devices/", { name, type, protocol, device_key }),
+ register: (username: string, email: string, password: string, password_confirm: string) =>
+  api.post("/api/auth/register/", { username, email, password, password_confirm }),
 
   update: (id: number, status: string) =>
     api.patch(`/api/devices/${id}/`, { status }),

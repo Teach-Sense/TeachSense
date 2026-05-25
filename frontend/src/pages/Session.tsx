@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Play, Square, Upload, Loader2, ArrowLeft, Mic, FileText, HelpCircle, Wifi, WifiOff, Radio } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { sessionsAPI, transcriptsAPI, questionsAPI, analyticsAPI } from "../services/api";
-import type { Session, Transcript, Question, Analytics, LecturerInfo } from "../types/session";
+import type { Session, Transcript, Question, Analytics } from "../types/session";
 
 const WS_BASE_URL = "wss://teachsense.onrender.com/ws";
 
@@ -28,11 +28,8 @@ const SessionPage = () => {
   const [liveTranscript, setLiveTranscript] = useState("");
   const [liveQuestions, setLiveQuestions] = useState<string[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-
-  const lecturerInfo: LecturerInfo | null = JSON.parse(
-    localStorage.getItem("lecturerInfo") || "null"
-  );
 
   const fetchAll = useCallback(async () => {
     if (!id) return;
@@ -43,8 +40,9 @@ const SessionPage = () => {
         questionsAPI.getAll(id),
       ]);
       setSession(sessionRes.data);
-      setTranscripts(transcriptRes.data);
-      setQuestions(questionsRes.data);
+      // Handle paginated responses
+      setTranscripts(transcriptRes.data.results ?? transcriptRes.data);
+      setQuestions(questionsRes.data.results ?? questionsRes.data);
 
       if (sessionRes.data.status === "completed") {
         try {
@@ -61,21 +59,40 @@ const SessionPage = () => {
     }
   }, [id]);
 
+  // ─── WebSocket Heartbeat ──────────────────────────────
+  const startHeartbeat = useCallback(() => {
+    heartbeatRef.current = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: "ping",
+          timestamp: new Date().toISOString(),
+        }));
+      }
+    }, 30000);
+  }, []);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+  }, []);
+
   // ─── WebSocket Connection ─────────────────────────────
   const connectWebSocket = useCallback(() => {
-    if (!lecturerInfo?.access || !id) return;
+    // Get token from localStorage (not lecturerInfo)
+    const token = localStorage.getItem("accessToken");
+    if (!token || !id) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     setWsStatus("connecting");
 
-    const ws = new WebSocket(
-      `${WS_BASE_URL}/sessions/${id}/?token=${lecturerInfo.access}`
-    );
+    const ws = new WebSocket(`${WS_BASE_URL}/sessions/${id}/?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
       setWsStatus("connected");
-      console.log("WebSocket connected");
+      startHeartbeat();
     };
 
     ws.onmessage = (event) => {
@@ -84,28 +101,33 @@ const SessionPage = () => {
 
         switch (data.type) {
           case "transcript.update":
-            // Live transcript segment from hardware mic
             setLiveTranscript((prev) => prev + " " + data.transcript_segment);
-            // Auto scroll to bottom
             setTimeout(() => {
               transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, 100);
             break;
 
-          case "question.generated":
-            // New AI-generated question
-            setLiveQuestions((prev) => [...prev, data.question]);
+          case "question.updated":
+            setLiveQuestions((prev) => [...prev, data.answer ?? data.question_id]);
             break;
 
-          case "analytics.update":
-            // Live analytics update
-            setAnalytics((prev) => ({ ...prev, ...data.analytics }));
+          case "metrics.update":
+            // Dashboard metrics via WS
             break;
 
-          case "session.status":
-            // Session status change
-            setSession((prev) => prev ? { ...prev, status: data.status } : prev);
-            if (data.status === "completed") fetchAll();
+          case "sessions.update":
+            if (data.session?.id === id) {
+              setSession((prev) => prev ? { ...prev, status: data.session.status } : prev);
+              if (data.session.status === "completed") fetchAll();
+            }
+            break;
+
+          case "pong":
+            // heartbeat response — do nothing
+            break;
+
+          case "error":
+            console.error("WS error:", data.message);
             break;
 
           default:
@@ -116,25 +138,27 @@ const SessionPage = () => {
       }
     };
 
-    ws.onerror = () => {
-      setWsStatus("error");
-    };
+    ws.onerror = () => setWsStatus("error");
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       setWsStatus("disconnected");
+      stopHeartbeat();
       wsRef.current = null;
+      // If policy violation (auth error) don't reconnect
+      if (event.code === 1008) return;
     };
-  }, [id, lecturerInfo?.access, fetchAll]);
+  }, [id, fetchAll, startHeartbeat, stopHeartbeat]);
 
   const disconnectWebSocket = useCallback(() => {
-    wsRef.current?.close();
+    stopHeartbeat();
+    wsRef.current?.close(1000, "Normal closure");
     wsRef.current = null;
     setWsStatus("disconnected");
-  }, []);
+  }, [stopHeartbeat]);
 
-  // Auto-connect when session is active
+  // Auto-connect when session is ongoing
   useEffect(() => {
-    if (session?.status === "active") {
+    if (session?.status === "ongoing") {
       connectWebSocket();
     } else {
       disconnectWebSocket();
@@ -216,11 +240,18 @@ const SessionPage = () => {
                 <div>
                   <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-1">Session</p>
                   <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
-                  <p className="text-sm text-gray-400 mt-1 font-mono">ID: {session.id}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-sm text-gray-400 font-mono">ID: {session.id}</p>
+                    {session.session_code && (
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md font-mono">
+                        Code: {session.session_code}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className={`text-xs font-mono px-3 py-1 rounded-full border capitalize ${
-                    session.status === "active"
+                    session.status === "ongoing"
                       ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                       : session.status === "completed"
                       ? "bg-gray-100 text-gray-500 border-gray-200"
@@ -229,8 +260,7 @@ const SessionPage = () => {
                     {session.status}
                   </span>
 
-                  {/* WebSocket status badge */}
-                  {session.status === "active" && (
+                  {session.status === "ongoing" && (
                     <div className={`flex items-center gap-1.5 text-xs font-mono px-3 py-1 rounded-full ${wsConfig.bg} ${wsConfig.color}`}>
                       <WSIcon size={11} className={wsStatus === "connecting" ? "animate-spin" : wsStatus === "connected" ? "animate-pulse" : ""} />
                       {wsConfig.label}
@@ -239,7 +269,7 @@ const SessionPage = () => {
                 </div>
               </div>
 
-              {session.status === "active" && (
+              {session.status === "ongoing" && (
                 <div className="flex items-center justify-between mt-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Mic size={15} className="text-emerald-600 animate-pulse" />
@@ -258,11 +288,11 @@ const SessionPage = () => {
                 </div>
               )}
 
-              {analytics?.comprehension_score !== undefined && (
+              {analytics?.avg_engagement_score !== undefined && (
                 <div className="mt-4 bg-gradient-to-r from-[#f0fdf4] to-[#e8fbed] border border-[#5cce6a]/20 rounded-xl px-5 py-4 flex items-center justify-between">
-                  <span className="text-sm text-[#2d9e3c] font-medium">Comprehension Score</span>
+                  <span className="text-sm text-[#2d9e3c] font-medium">Avg Engagement Score</span>
                   <span className="text-3xl font-bold font-mono text-[#2d9e3c]">
-                    {analytics.comprehension_score}%
+                    {analytics.avg_engagement_score}
                   </span>
                 </div>
               )}
@@ -272,16 +302,16 @@ const SessionPage = () => {
             <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
               <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4">Controls</p>
               <div className="flex flex-wrap gap-3">
-                {session.status === "pending" && (
+                {session.status === "scheduled" && (
                   <button
-                    onClick={() => updateStatus("active")}
+                    onClick={() => updateStatus("ongoing")}
                     className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-6 py-3 rounded-xl text-sm font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition shadow-md shadow-green-200"
                   >
                     <Play size={15} fill="white" /> Start Session
                   </button>
                 )}
 
-                {session.status === "active" && (
+                {session.status === "ongoing" && (
                   <button
                     onClick={() => updateStatus("completed")}
                     className="flex items-center gap-2 bg-red-500 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-red-600 transition"
@@ -308,7 +338,7 @@ const SessionPage = () => {
             </div>
 
             {/* Live Transcript (WebSocket) */}
-            {session.status === "active" && (
+            {session.status === "ongoing" && (
               <div className="bg-white border border-[#5cce6a]/20 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -316,10 +346,7 @@ const SessionPage = () => {
                     <p className="text-xs font-mono text-[#2d9e3c] uppercase tracking-widest">Live Transcript</p>
                   </div>
                   {liveTranscript && (
-                    <button
-                      onClick={() => setLiveTranscript("")}
-                      className="text-xs text-gray-400 hover:text-gray-600 transition"
-                    >
+                    <button onClick={() => setLiveTranscript("")} className="text-xs text-gray-400 hover:text-gray-600 transition">
                       Clear
                     </button>
                   )}
@@ -327,9 +354,7 @@ const SessionPage = () => {
 
                 <div className="min-h-24 max-h-64 overflow-y-auto bg-[#f4faf5] rounded-xl p-4">
                   {liveTranscript ? (
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                      {liveTranscript}
-                    </p>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{liveTranscript}</p>
                   ) : (
                     <p className="text-sm text-gray-400 italic">
                       {wsStatus === "connected"
@@ -340,10 +365,9 @@ const SessionPage = () => {
                   <div ref={transcriptEndRef} />
                 </div>
 
-                {/* Live questions from WebSocket */}
                 {liveQuestions.length > 0 && (
                   <div className="mt-4 space-y-2">
-                    <p className="text-xs font-mono text-[#2d9e3c] uppercase tracking-widest">AI Generated Questions</p>
+                    <p className="text-xs font-mono text-[#2d9e3c] uppercase tracking-widest">Live Questions</p>
                     {liveQuestions.map((q, i) => (
                       <div key={i} className="bg-[#f0fdf4] border border-[#5cce6a]/20 rounded-xl p-3">
                         <p className="text-sm text-gray-700">{i + 1}. {q}</p>
@@ -394,23 +418,41 @@ const SessionPage = () => {
               <div className="bg-[#f0fdf4] border border-[#5cce6a]/20 rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <HelpCircle size={15} className="text-[#2d9e3c]" />
-                  <p className="text-xs font-mono text-[#2d9e3c] uppercase tracking-widest">Generated Questions</p>
+                  <p className="text-xs font-mono text-[#2d9e3c] uppercase tracking-widest">Questions</p>
                 </div>
                 <div className="space-y-3">
                   {questions.map((q, i) => (
                     <div key={q.id} className="bg-white rounded-xl p-4 border border-[#5cce6a]/10">
                       <p className="text-sm text-gray-700 font-medium">{i + 1}. {q.text}</p>
+                      {q.answer && (
+                        <p className="text-sm text-[#2d9e3c] mt-2">
+                          <span className="font-semibold">Answer:</span> {q.answer}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Analytics Summary */}
-            {analytics?.summary && (
+            {/* Analytics */}
+            {analytics && (
               <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-3">AI Summary</p>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{analytics.summary}</p>
+                <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4">Session Analytics</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="bg-[#f4faf5] rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold font-mono text-[#2d9e3c]">{analytics.total_participants}</p>
+                    <p className="text-xs text-gray-400 mt-1">Participants</p>
+                  </div>
+                  <div className="bg-[#f4faf5] rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold font-mono text-[#2d9e3c]">{analytics.questions_asked}</p>
+                    <p className="text-xs text-gray-400 mt-1">Questions</p>
+                  </div>
+                  <div className="bg-[#f4faf5] rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold font-mono text-[#2d9e3c]">{(analytics.participation_rate * 100).toFixed(0)}%</p>
+                    <p className="text-xs text-gray-400 mt-1">Participation</p>
+                  </div>
+                </div>
               </div>
             )}
           </>

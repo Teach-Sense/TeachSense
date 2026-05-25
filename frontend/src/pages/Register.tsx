@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { GraduationCap, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { authAPI } from "../services/api";
+import { authAPI, getErrorMessage } from "../services/api";
 
 const Register = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+ const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [password_confirm, setPassword_confirm] = useState("");
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,23 +19,20 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await authAPI.register(name, email, password);
-      await authAPI.login(email, password);
-      localStorage.setItem("lecturerInfo", JSON.stringify({
-        name,
-        email,
-      }));
+      // Register with first_name and last_name
+     await authAPI.register(username, email, password, password_confirm);
+
+      // Auto login after register
+      const { data } = await authAPI.login(email, password);
+
+      // Store tokens
+      localStorage.setItem("accessToken", data.access);
+      localStorage.setItem("refreshToken", data.refresh);
+      localStorage.setItem("lecturerInfo", JSON.stringify(data.user));
+
       navigate("/dashboard");
     } catch (err: any) {
-      const errData = err.response?.data;
-      const msg =
-        errData?.detail ||
-        errData?.email?.[0] ||
-        errData?.password?.[0] ||
-        errData?.name?.[0] ||
-        errData?.message ||
-        "Registration failed. Please try again.";
-      setError(msg);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -62,18 +60,20 @@ const Register = () => {
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
-              Full Name
-            </label>
-            <input
-              type="text"
-              placeholder="Dr. John Adeyemi"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
-            />
+  <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
+    Username
+  </label>
+  <input
+    type="text"
+    placeholder="dr-Ahmad_Zubair"
+    value={username}
+    onChange={(e) => setUsername(e.target.value)}
+    required
+    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
+  />
+</div>
           </div>
 
           <div>
@@ -113,6 +113,19 @@ const Register = () => {
               </button>
             </div>
           </div>
+          <div>
+  <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
+    Confirm Password
+  </label>
+  <input
+    type="password"
+    placeholder="••••••••"
+    value={password_confirm}
+    onChange={(e) => setPassword_confirm(e.target.value)}
+    required
+    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
+  />
+</div>
 
           <button
             type="submit"

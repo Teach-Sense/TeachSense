@@ -24,8 +24,9 @@ const StudentView = () => {
           questionsAPI.getAll(id),
         ]);
         setSession(sessionRes.data);
-        setTranscripts(transcriptRes.data);
-        setQuestions(questionsRes.data);
+        // Handle paginated responses
+        setTranscripts(transcriptRes.data.results ?? transcriptRes.data);
+        setQuestions(questionsRes.data.results ?? questionsRes.data);
 
         try {
           const analyticsRes = await analyticsAPI.getSession(id);
@@ -68,33 +69,38 @@ const StudentView = () => {
             <div>
               <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-1">Lecture Results</p>
               <h1 className="text-3xl font-bold text-gray-900">{session?.title}</h1>
+              {session?.session_code && (
+                <p className="text-sm text-gray-400 font-mono mt-1">Code: {session.session_code}</p>
+              )}
             </div>
 
-            {/* Comprehension Score */}
-            {analytics?.comprehension_score !== undefined && (
-              <div className="bg-gradient-to-br from-[#0d1f0f] to-[#071a09] text-white rounded-2xl p-8 flex items-center justify-between">
-                <div>
-                  <p className="text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
-                    Class Comprehension Score
-                  </p>
-                  <p className="text-6xl font-bold font-mono text-[#5cce6a]">
-                    {analytics.comprehension_score}%
-                  </p>
+            {/* Analytics Cards */}
+            {analytics && (
+              <div className="bg-gradient-to-br from-[#0d1f0f] to-[#071a09] text-white rounded-2xl p-8">
+                <p className="text-white/40 text-xs font-mono uppercase tracking-widest mb-6">Session Analytics</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <p className="text-4xl font-bold font-mono text-[#5cce6a]">
+                      {analytics.avg_engagement_score}
+                    </p>
+                    <p className="text-white/40 text-xs mt-1">Avg Engagement</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-4xl font-bold font-mono text-[#5cce6a]">
+                      {analytics.total_participants}
+                    </p>
+                    <p className="text-white/40 text-xs mt-1">Participants</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-4xl font-bold font-mono text-[#5cce6a]">
+                      {(analytics.participation_rate * 100).toFixed(0)}%
+                    </p>
+                    <p className="text-white/40 text-xs mt-1">Participation</p>
+                  </div>
                 </div>
-                <TrendingUp size={64} className="text-white/10" />
-              </div>
-            )}
-
-            {/* Summary */}
-            {analytics?.summary && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <BookOpen size={16} className="text-[#2d9e3c]" />
-                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">Lecture Summary</p>
+                <div className="flex items-center justify-center mt-4 opacity-10">
+                  <TrendingUp size={48} />
                 </div>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">
-                  {analytics.summary}
-                </p>
               </div>
             )}
 
@@ -120,15 +126,33 @@ const StudentView = () => {
               <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <HelpCircle size={16} className="text-[#2d9e3c]" />
-                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">Quiz Questions</p>
+                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">Questions</p>
                 </div>
                 <div className="space-y-3">
                   {questions.map((q, i) => (
                     <div key={q.id} className="bg-[#f0fdf4] border border-[#5cce6a]/20 rounded-xl p-4">
                       <p className="text-sm text-gray-800 font-medium">{i + 1}. {q.text}</p>
+                      {q.answer && (
+                        <p className="text-sm text-[#2d9e3c] mt-2">
+                          <span className="font-semibold">Answer:</span> {q.answer}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Summary from transcript */}
+            {session?.transcript && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen size={16} className="text-[#2d9e3c]" />
+                  <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">Session Transcript</p>
+                </div>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">
+                  {session.transcript}
+                </p>
               </div>
             )}
           </>

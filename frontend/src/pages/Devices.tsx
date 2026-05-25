@@ -109,6 +109,7 @@ const Devices = () => {
               placeholder="Device name e.g. Classroom Mic"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              maxLength={255}
               className="border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#5cce6a]/30 focus:border-[#5cce6a] transition"
             />
             <select

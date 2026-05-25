@@ -13,8 +13,9 @@ const History = () => {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const { data } = await sessionsAPI.getAll();
-        setSessions(data.filter((s: Session) => s.status === "completed"));
+        const { data } = await sessionsAPI.getAll("completed");
+        // Handle paginated response
+        setSessions(data.results ?? data);
       } catch (error) {
         console.error(error);
       } finally {
@@ -61,7 +62,7 @@ const History = () => {
                     <div>
                       <h3 className="font-semibold text-gray-900">{session.title}</h3>
                       <p className="text-xs text-gray-400 font-mono mt-0.5">
-                        {new Date(session.created_at).toLocaleDateString("en-GB", {
+                        {new Date(session.started_at ?? session.created_at ?? "").toLocaleDateString("en-GB", {
                           weekday: "short",
                           day: "numeric",
                           month: "short",
