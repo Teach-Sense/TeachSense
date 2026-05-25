@@ -24,12 +24,19 @@ ALLOWED_HOSTS = [
 	if host.strip()
 ]
 
-render_external_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
-if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
-	ALLOWED_HOSTS.append(render_external_hostname)
+from urllib.parse import urlparse
 
-if "teachsense.onrender.com" not in ALLOWED_HOSTS:
-	ALLOWED_HOSTS.append("teachsense.onrender.com")
+# Normalize RENDER_EXTERNAL_HOSTNAME: accept either a plain hostname or a full URL
+raw_render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+render_external_hostname = ""
+if raw_render_hostname:
+	# If a scheme is present, urlparse will parse hostname; otherwise force-with-slashes
+	parsed = urlparse(raw_render_hostname if "://" in raw_render_hostname else f"//{raw_render_hostname}")
+	render_external_hostname = (parsed.hostname or raw_render_hostname).strip().strip("/")
+	if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
+		ALLOWED_HOSTS.append(render_external_hostname)
+
+# NOTE: do not add hardcoded fallback hosts here; rely on `RENDER_EXTERNAL_HOSTNAME`
 
 INSTALLED_APPS = [
 	"django.contrib.admin",
@@ -221,6 +228,51 @@ CORS_ALLOW_HEADERS = [
 	"x-device-token",
 	"x-api-key",
 ]
+
+# Ensure render host and https origin are allowed for CORS/CSRF and enable cookie settings
+if render_external_hostname:
+	# Add scheme'd origins for CORS/CSRF if needed
+	https_origin = f"https://{render_external_hostname}"
+	if https_origin not in CORS_ALLOWED_ORIGINS:
+		CORS_ALLOWED_ORIGINS.append(https_origin)
+	if https_origin not in CSRF_TRUSTED_ORIGINS:
+		CSRF_TRUSTED_ORIGINS.append(https_origin)
+
+# Ensure the public Render domain is permitted
+	# (no hardcoded fallback here)
+
+# Allow a FRONTEND_URL env var (accepts full URL or hostname+path). We add the origin (scheme+hostname)
+raw_frontend_url = os.getenv("FRONTEND_URL", "").strip()
+if raw_frontend_url:
+	parsed_frontend = urlparse(raw_frontend_url if "://" in raw_frontend_url else f"//{raw_frontend_url}")
+	frontend_scheme = parsed_frontend.scheme or "https"
+	frontend_host = parsed_frontend.hostname
+	if frontend_host:
+		frontend_origin = f"{frontend_scheme}://{frontend_host}"
+		if frontend_origin not in CORS_ALLOWED_ORIGINS:
+			CORS_ALLOWED_ORIGINS.append(frontend_origin)
+		if frontend_origin not in CSRF_TRUSTED_ORIGINS:
+			CSRF_TRUSTED_ORIGINS.append(frontend_origin)
+
+# Allow local dev frontend in CSRF trusted origins (required for cross-site cookie tests)
+if "http://localhost:5173" not in CSRF_TRUSTED_ORIGINS:
+	CSRF_TRUSTED_ORIGINS.append("http://localhost:5173")
+
+# Ensure localhost dev origin is also present in CORS_ALLOWED_ORIGINS
+if "http://localhost:5173" not in CORS_ALLOWED_ORIGINS:
+	CORS_ALLOWED_ORIGINS.append("http://localhost:5173")
+
+# Cookie settings: enable cross-site cookies when appropriate
+# Use `None` Samesite to allow cross-site cookie sending; `Secure` is enabled in non-DEBUG.
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "None")
+CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "None")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# Use the Render external hostname as the session cookie domain when available
+if render_external_hostname:
+	SESSION_COOKIE_DOMAIN = render_external_hostname
+
 
 REDIS_URL = os.getenv(
 	"REDIS_URL_PROD" if USE_UPSTASH_REDIS else "REDIS_URL_DEV",
