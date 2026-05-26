@@ -15,6 +15,8 @@ def env_bool(name, default=False):
 USE_POSTGRES = env_bool("USE_POSTGRES", False)
 USE_UPSTASH_REDIS = env_bool("USE_UPSTASH_REDIS", False)
 
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
 
@@ -101,23 +103,48 @@ TEMPLATES = [
 
 DATABASES = {
 	"default": {
-		"ENGINE": os.getenv(
-			"DB_ENGINE_PROD" if USE_POSTGRES else "DB_ENGINE_DEV",
-			os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
+		**(
+			{
+				"ENGINE": "django.db.backends.sqlite3",
+				"NAME": os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
+			}
+			if not DATABASE_URL and not USE_POSTGRES
+			else {}
 		),
-		"NAME": os.getenv(
-			"DB_NAME_PROD" if USE_POSTGRES else "DB_NAME_DEV",
-			os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
-		),
-		"USER": os.getenv("DB_USER_PROD" if USE_POSTGRES else "DB_USER_DEV", os.getenv("DB_USER", "")),
-		"PASSWORD": os.getenv(
-			"DB_PASSWORD_PROD" if USE_POSTGRES else "DB_PASSWORD_DEV",
-			os.getenv("DB_PASSWORD", ""),
-		),
-		"HOST": os.getenv("DB_HOST_PROD" if USE_POSTGRES else "DB_HOST_DEV", os.getenv("DB_HOST", "")),
-		"PORT": os.getenv("DB_PORT_PROD" if USE_POSTGRES else "DB_PORT_DEV", os.getenv("DB_PORT", "")),
 	}
 }
+
+if DATABASE_URL:
+	if DATABASE_URL.startswith(("postgres://", "postgresql://")):
+		from urllib.parse import urlparse
+
+		parsed_db = urlparse(DATABASE_URL)
+		DATABASES["default"] = {
+			"ENGINE": "django.db.backends.postgresql",
+			"NAME": parsed_db.path.lstrip("/") or os.getenv("DB_NAME", ""),
+			"USER": parsed_db.username or os.getenv("DB_USER", ""),
+			"PASSWORD": parsed_db.password or os.getenv("DB_PASSWORD", ""),
+			"HOST": parsed_db.hostname or os.getenv("DB_HOST", ""),
+			"PORT": str(parsed_db.port or os.getenv("DB_PORT", "")),
+		}
+	elif DATABASE_URL.startswith("sqlite"):
+		from urllib.parse import urlparse
+
+		parsed_db = urlparse(DATABASE_URL)
+		DATABASES["default"] = {
+			"ENGINE": "django.db.backends.sqlite3",
+			"NAME": parsed_db.path or os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
+		}
+
+elif USE_POSTGRES:
+	DATABASES["default"] = {
+		"ENGINE": os.getenv("DB_ENGINE_PROD", os.getenv("DB_ENGINE", "django.db.backends.postgresql")),
+		"NAME": os.getenv("DB_NAME_PROD", os.getenv("DB_NAME", "")),
+		"USER": os.getenv("DB_USER_PROD", os.getenv("DB_USER", "")),
+		"PASSWORD": os.getenv("DB_PASSWORD_PROD", os.getenv("DB_PASSWORD", "")),
+		"HOST": os.getenv("DB_HOST_PROD", os.getenv("DB_HOST", "")),
+		"PORT": os.getenv("DB_PORT_PROD", os.getenv("DB_PORT", "")),
+	}
 
 AUTH_PASSWORD_VALIDATORS = [
 	{"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
