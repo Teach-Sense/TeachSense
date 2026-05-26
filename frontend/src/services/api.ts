@@ -17,7 +17,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh token on 401 + handle error codes
+// Auto-refresh token on 401
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -35,7 +35,7 @@ api.interceptors.response.use(
         return api(original);
       } catch {
         localStorage.clear();
-        window.location.href = "/";
+        window.location.href = "/login";
       }
     }
 
@@ -50,21 +50,38 @@ api.interceptors.response.use(
   }
 );
 
+// Handles ALL backend error formats
 export const getErrorMessage = (err: any): string => {
   const data = err?.response?.data;
   if (!data) return "Network error. Check your connection.";
 
-  if (data.errors) {
-    const firstField = Object.keys(data.errors)[0];
-    return data.errors[firstField]?.[0] || "Validation failed.";
+  // Format: { errors: { field: ["msg"] } }
+  if (data.errors && typeof data.errors === "object") {
+    const firstKey = Object.keys(data.errors)[0];
+    const firstVal = data.errors[firstKey];
+    if (Array.isArray(firstVal)) return firstVal[0];
+    if (typeof firstVal === "string") return firstVal;
   }
 
-  return (
-    data.detail ||
-    data.message ||
-    data.non_field_errors?.[0] ||
-    "An unexpected error occurred."
-  );
+  // Format: { message: "..." }
+  if (data.message && data.message !== "An unexpected error occurred.") {
+    return data.message;
+  }
+
+  // Format: { detail: "..." }
+  if (data.detail) return data.detail;
+
+  // Format: { non_field_errors: ["..."] }
+  if (data.non_field_errors?.[0]) return data.non_field_errors[0];
+
+  // Format: { field: ["error"] } (DRF validation)
+  if (typeof data === "object") {
+    const firstKey = Object.keys(data)[0];
+    const firstVal = data[firstKey];
+    if (Array.isArray(firstVal)) return `${firstKey}: ${firstVal[0]}`;
+  }
+
+  return "An unexpected error occurred. Please try again.";
 };
 
 // ─── Auth ────────────────────────────────────────────────
