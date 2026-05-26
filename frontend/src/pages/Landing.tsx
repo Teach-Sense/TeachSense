@@ -51,7 +51,7 @@ const Landing = () => {
               onClick={() => navigate("/register")}
               className="px-7 py-3 bg-[#2d9e3c] text-white font-bold rounded-xl hover:bg-[#3dae4c] transition shadow-lg shadow-green-900/30"
             >
-              Get started 
+              Get started free
             </button>
             <button
               onClick={() => navigate("/login")}
@@ -122,29 +122,12 @@ const Landing = () => {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
           {[
-            {
-              icon: <Mic size={18} className="text-[#2d9e3c]" />,
-              title: "Speech to text",
-              desc: "Live transcription of every lecture powered by AI speech recognition.",
-            },
-            {
-              icon: <Brain size={18} className="text-[#2d9e3c]" />,
-              title: "AI summaries",
-              desc: "Automatic lecture summaries and key takeaways generated after each session.",
-            },
-            {
-              icon: <BarChart2 size={18} className="text-[#2d9e3c]" />,
-              title: "Analytics",
-              desc: "Track comprehension scores, participation rates, and engagement over time.",
-            },
+            { icon: <Mic size={18} className="text-[#2d9e3c]" />, title: "Speech to text", desc: "Live transcription of every lecture powered by AI speech recognition." },
+            { icon: <Brain size={18} className="text-[#2d9e3c]" />, title: "AI summaries", desc: "Automatic lecture summaries and key takeaways generated after each session." },
+            { icon: <BarChart2 size={18} className="text-[#2d9e3c]" />, title: "Analytics", desc: "Track comprehension scores, participation rates, and engagement over time." },
           ].map(({ icon, title, desc }) => (
-            <div
-              key={title}
-              className="bg-[#0d1f0f] border border-[#1a3d1c] rounded-2xl p-6 hover:border-[#2d9e3c]/40 transition"
-            >
-              <div className="w-9 h-9 bg-[#2d9e3c]/10 rounded-xl flex items-center justify-center mb-4">
-                {icon}
-              </div>
+            <div key={title} className="bg-[#0d1f0f] border border-[#1a3d1c] rounded-2xl p-6 hover:border-[#2d9e3c]/40 transition">
+              <div className="w-9 h-9 bg-[#2d9e3c]/10 rounded-xl flex items-center justify-center mb-4">{icon}</div>
               <h3 className="font-semibold text-sm mb-2">{title}</h3>
               <p className="text-white/40 text-sm leading-relaxed">{desc}</p>
             </div>
@@ -159,9 +142,7 @@ const Landing = () => {
           <span className="text-white/20 text-xs font-mono">System online</span>
           <div className="w-1.5 h-1.5 bg-[#5cce6a] rounded-full animate-pulse ml-1" />
         </div>
-        <span className="text-white/20 text-xs font-mono">
-          TeachSense · Classroom Intelligence System
-        </span>
+        <span className="text-white/20 text-xs font-mono">TeachSense · Classroom Intelligence System</span>
       </footer>
 
     </div>

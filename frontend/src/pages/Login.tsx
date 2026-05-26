@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { GraduationCap, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { authAPI, getErrorMessage } from "../services/api";
-import {  Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -18,11 +17,9 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { data } = await authAPI.login(email, password);
-      // Store tokens separately
+      const { data } = await authAPI.login(username, password);
       localStorage.setItem("accessToken", data.access);
       localStorage.setItem("refreshToken", data.refresh);
-      // Store user info
       localStorage.setItem("lecturerInfo", JSON.stringify(data.user));
       navigate("/dashboard");
     } catch (err: any) {
@@ -96,13 +93,13 @@ const Login = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
-                Email
+                Username
               </label>
               <input
-                type="email"
-                placeholder="lecturer@university.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="dr_ahmad_zubair"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 outline-none focus:border-[#5cce6a]/50 transition-all text-sm"
               />
@@ -139,12 +136,13 @@ const Login = () => {
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
+
           <p className="text-center text-white/30 text-sm mt-6">
-  Don't have an account?{" "}
-  <Link to="/register" className="text-[#5cce6a] hover:text-[#7dde8a] transition font-medium">
-    Register
-  </Link>
-</p>
+            Don't have an account?{" "}
+            <Link to="/register" className="text-[#5cce6a] hover:text-[#7dde8a] transition font-medium">
+              Register
+            </Link>
+          </p>
 
           <p className="text-white/20 text-xs font-mono text-center mt-8">
             TeachSense · Classroom Intelligence System

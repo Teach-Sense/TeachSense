@@ -86,8 +86,8 @@ export const getErrorMessage = (err: any): string => {
 
 // ─── Auth ────────────────────────────────────────────────
 export const authAPI = {
-  login: (email: string, password: string) =>
-    api.post("/api/auth/login/", { email, password }),
+  login: (username: string, password: string) =>
+    api.post("/api/auth/login/", { username, password }),
 
   register: (username: string, email: string, password: string, password_confirm: string) =>
     api.post("/api/auth/register/", { username, email, password, password_confirm }),

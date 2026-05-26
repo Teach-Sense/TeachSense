@@ -18,7 +18,6 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
-    // Client-side validation
     if (password !== passwordConfirm) {
       setError("Passwords do not match.");
       return;
@@ -34,8 +33,8 @@ const Register = () => {
       // Step 1: Register
       await authAPI.register(username, email, password, passwordConfirm);
 
-      // Step 2: Auto login
-      const { data } = await authAPI.login(email, password);
+      // Step 2: Auto login using USERNAME (not email!)
+      const { data } = await authAPI.login(username, password);
 
       // Step 3: Store tokens and user info
       localStorage.setItem("accessToken", data.access);
@@ -53,7 +52,6 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-8">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
           <div className="w-9 h-9 bg-gradient-to-br from-[#5cce6a] to-[#2d9e3c] rounded-xl flex items-center justify-center shadow-lg shadow-green-900/50">
             <GraduationCap size={18} className="text-white" />
@@ -72,7 +70,6 @@ const Register = () => {
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
-          {/* Username */}
           <div>
             <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
               Username
@@ -87,7 +84,6 @@ const Register = () => {
             />
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
               Email
@@ -102,7 +98,6 @@ const Register = () => {
             />
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
               Password
@@ -127,7 +122,6 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
               Confirm Password
@@ -149,7 +143,6 @@ const Register = () => {
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {/* Live password match indicator */}
             {passwordConfirm && (
               <p className={`text-xs mt-1 ${password === passwordConfirm ? "text-[#5cce6a]" : "text-red-400"}`}>
                 {password === passwordConfirm ? "✓ Passwords match" : "✗ Passwords do not match"}
