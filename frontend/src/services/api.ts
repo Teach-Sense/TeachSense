@@ -54,32 +54,31 @@ api.interceptors.response.use(
 export const getErrorMessage = (err: any): string => {
   const data = err?.response?.data;
   if (!data) return "Network error. Check your connection.";
+  // If backend returns structured validation errors, render them verbatim
+  // e.g. { errors: { field: ["msg"] } } or DRF default { field: ["msg"] }
+  const buildFromObject = (obj: any) => {
+    try {
+      if (!obj || typeof obj !== "object") return null;
+      // Prefer `errors` wrapper
+      const source = obj.errors || obj;
+      const entries = Object.entries(source).map(([k, v]) => {
+        if (Array.isArray(v)) return `${k}: ${v.join("; ")}`;
+        if (typeof v === "object") return `${k}: ${JSON.stringify(v)}`;
+        return `${k}: ${String(v)}`;
+      });
+      return entries.join("\n");
+    } catch {
+      return null;
+    }
+  };
 
-  // Format: { errors: { field: ["msg"] } }
-  if (data.errors && typeof data.errors === "object") {
-    const firstKey = Object.keys(data.errors)[0];
-    const firstVal = data.errors[firstKey];
-    if (Array.isArray(firstVal)) return firstVal[0];
-    if (typeof firstVal === "string") return firstVal;
-  }
+  const fromObj = buildFromObject(data);
+  if (fromObj) return fromObj;
 
-  // Format: { message: "..." }
-  if (data.message && data.message !== "An unexpected error occurred.") {
-    return data.message;
-  }
-
-  // Format: { detail: "..." }
+  // Fallbacks: message, detail, non_field_errors
+  if (data.message) return data.message;
   if (data.detail) return data.detail;
-
-  // Format: { non_field_errors: ["..."] }
   if (data.non_field_errors?.[0]) return data.non_field_errors[0];
-
-  // Format: { field: ["error"] } (DRF validation)
-  if (typeof data === "object") {
-    const firstKey = Object.keys(data)[0];
-    const firstVal = data[firstKey];
-    if (Array.isArray(firstVal)) return `${firstKey}: ${firstVal[0]}`;
-  }
 
   return "An unexpected error occurred. Please try again.";
 };
