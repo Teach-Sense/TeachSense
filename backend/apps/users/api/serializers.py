@@ -33,6 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer for user registration."""
 
+    email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True, min_length=8)
     is_lecturer = serializers.BooleanField(write_only=True, required=False, default=False)
@@ -53,8 +54,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Validate password match."""
         if attrs.get("password") != attrs.get("password_confirm"):
-            raise serializers.ValidationError({"password": "Passwords do not match."})
+            raise serializers.ValidationError({"password": ["Passwords do not match."]})
         return attrs
+
+    def validate_email(self, value):
+        """Ensure email is provided and unique."""
+        if not value:
+            raise serializers.ValidationError("Email is required.")
+
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
 
     def create(self, validated_data):
         """Create user with hashed password."""
@@ -68,9 +78,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
         elif not validated_data.get("role"):
             validated_data["role"] = "student"
 
-        user = User.objects.create(**validated_data)
-        user.set_password(password)
-        user.save()
+        # Use create_user to ensure proper user creation and validations
+        user = User.objects.create_user(
+            username=validated_data.get("username"),
+            email=validated_data.get("email"),
+            first_name=validated_data.get("first_name", ""),
+            last_name=validated_data.get("last_name", ""),
+            role=validated_data.get("role", "student"),
+            password=password,
+        )
+
         return user
 
 
@@ -151,5 +168,5 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate(self, attrs):
         """Validate passwords."""
         if attrs.get("new_password") != attrs.get("new_password_confirm"):
-            raise serializers.ValidationError({"new_password": "Passwords do not match."})
+            raise serializers.ValidationError({"new_password": ["Passwords do not match."]})
         return attrs
