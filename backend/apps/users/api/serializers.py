@@ -126,6 +126,12 @@ class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
+    def validate_username(self, value):
+        """Enforce username-only login (email is not accepted)."""
+        if "@" in value:
+            raise serializers.ValidationError("Use your username, not email, to sign in.")
+        return value
+
     def validate(self, attrs):
         """Authenticate user."""
         username = attrs.get("username")
