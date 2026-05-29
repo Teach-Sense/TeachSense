@@ -19,8 +19,10 @@ const Dashboard = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
+    setError(null);
     try {
       const sessionsRes = await sessionsAPI.getAll();
       // Handle paginated response
@@ -38,7 +40,12 @@ const Dashboard = () => {
       } catch {
         // metrics optional
       }
-    } catch (error) {
+    } catch (error: any) {
+      setError(
+        error?.response?.status === 401
+          ? "You are not authenticated. Please log in again."
+          : "Failed to fetch dashboard data. Please try again later."
+      );
       console.error("Failed to fetch data:", error);
     } finally {
       setLoading(false);
@@ -73,6 +80,22 @@ const Dashboard = () => {
   };
 
   const completedSessions = sessions.filter((s) => s.status === "completed");
+
+  if (error) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <div className="max-w-5xl mx-auto p-8 text-center text-red-600">
+          <h2 className="text-xl font-bold mb-2">{error}</h2>
+          <button
+            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg"
+            onClick={() => window.location.reload()}
+          >
+            Reload
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Dashboard">

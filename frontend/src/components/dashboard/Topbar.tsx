@@ -10,9 +10,21 @@ type Props = {
 const Topbar = ({ title = "Dashboard" }: Props) => {
   const navigate = useNavigate();
 
-  const lecturerInfo: LecturerInfo | null = JSON.parse(
-    localStorage.getItem("lecturerInfo") || "null"
-  );
+  let lecturerInfo: LecturerInfo | null = null;
+  try {
+    const stored = localStorage.getItem("lecturerInfo");
+    if (stored && stored !== "undefined") {
+      lecturerInfo = JSON.parse(stored);
+    }
+  } catch {
+    lecturerInfo = null;
+  }
+
+  const fullName = lecturerInfo
+    ? (lecturerInfo.first_name && lecturerInfo.last_name
+        ? `${lecturerInfo.first_name} ${lecturerInfo.last_name}`.trim()
+        : lecturerInfo.username || lecturerInfo.email || "Lecturer")
+    : "Lecturer";
 
   const handleLogout = async () => {
     try {
@@ -26,10 +38,6 @@ const Topbar = ({ title = "Dashboard" }: Props) => {
       navigate("/");
     }
   };
-
-  const fullName = lecturerInfo
-    ? `${lecturerInfo.first_name} ${lecturerInfo.last_name}`.trim() || lecturerInfo.email
-    : "Lecturer";
 
   return (
     <div className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center">

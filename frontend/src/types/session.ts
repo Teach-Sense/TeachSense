@@ -2,12 +2,12 @@
 export type LecturerInfo = {
   id: number;
   email: string;
-  first_name: string;
-  last_name: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
   role: string;
   avatar_url?: string;
 };
-
 // Sessions
 export type SessionStatus = "scheduled" | "ongoing" | "completed";
 
