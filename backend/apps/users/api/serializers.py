@@ -127,14 +127,23 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        """Authenticate user."""
-        username = attrs.get("username")
+        """Authenticate user by username or email."""
+        identifier = attrs.get("username")
         password = attrs.get("password")
-
-        user = authenticate(username=username, password=password)
+        user = None
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if identifier:
+            if "@" in identifier:
+                try:
+                    user_obj = User.objects.get(email__iexact=identifier)
+                    user = authenticate(username=user_obj.username, password=password)
+                except User.DoesNotExist:
+                    user = None
+            else:
+                user = authenticate(username=identifier, password=password)
         if not user:
-            raise serializers.ValidationError("Invalid username or password.")
-
+            raise serializers.ValidationError("Invalid username/email or password.")
         attrs["user"] = user
         return attrs
 
