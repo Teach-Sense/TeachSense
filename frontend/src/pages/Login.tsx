@@ -11,23 +11,26 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      const { data } = await authAPI.login(username, password);
-      localStorage.setItem("accessToken", data.access);
-      localStorage.setItem("refreshToken", data.refresh);
-      localStorage.setItem("lecturerInfo", JSON.stringify(data.user));
-      navigate("/dashboard");
-    } catch (err: any) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const { data } = await authAPI.login(username, password);
+    // Backend wraps response in data.data
+    const responseData = data.data;
+    localStorage.setItem("accessToken", responseData.access);
+    localStorage.setItem("refreshToken", responseData.refresh);
+    localStorage.setItem("lecturerInfo", JSON.stringify(responseData.user));
+    navigate("/dashboard");
+  } catch (err: any) {
+    setError(getErrorMessage(err));
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#071a09] flex">

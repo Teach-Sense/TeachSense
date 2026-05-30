@@ -25,11 +25,10 @@ const Dashboard = () => {
     setError(null);
     try {
       const sessionsRes = await sessionsAPI.getAll();
-      // Handle paginated response
+      console.log("Sessions response:", sessionsRes.data);
       const data = sessionsRes.data;
       setSessions(data.results ?? data);
 
-      // Try to get dashboard metrics
       try {
         const dashRes = await dashboardAPI.getAll();
         const dashboards = dashRes.data.results ?? dashRes.data;
@@ -40,13 +39,14 @@ const Dashboard = () => {
       } catch {
         // metrics optional
       }
-    } catch (error: any) {
+    } catch (err: any) {
+      console.error("Failed to fetch data:", err);
+      console.error("Error response:", err?.response?.data);
       setError(
-        error?.response?.status === 401
+        err?.response?.status === 401
           ? "You are not authenticated. Please log in again."
-          : "Failed to fetch dashboard data. Please try again later."
+          : `Failed to load dashboard: ${err?.response?.data?.detail || err?.message || "Unknown error"}`
       );
-      console.error("Failed to fetch data:", error);
     } finally {
       setLoading(false);
     }
@@ -84,14 +84,16 @@ const Dashboard = () => {
   if (error) {
     return (
       <DashboardLayout title="Dashboard">
-        <div className="max-w-5xl mx-auto p-8 text-center text-red-600">
-          <h2 className="text-xl font-bold mb-2">{error}</h2>
-          <button
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg"
-            onClick={() => window.location.reload()}
-          >
-            Reload
-          </button>
+        <div className="max-w-5xl mx-auto p-8 text-center">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
+            <h2 className="text-lg font-bold text-red-600 mb-2">{error}</h2>
+            <button
+              className="mt-4 px-6 py-2 bg-[#2d9e3c] text-white rounded-xl text-sm font-bold hover:bg-[#3dae4c] transition"
+              onClick={() => fetchData()}
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </DashboardLayout>
     );
