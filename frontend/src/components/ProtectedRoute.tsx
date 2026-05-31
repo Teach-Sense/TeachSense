@@ -5,7 +5,7 @@ type Props = {
 };
 
 
-import { jwtDecode } from "jwt-decode";
+import jwtDecode from "jwt-decode";
 
 const isTokenValid = (token: string | null) => {
   if (!token) return false;
