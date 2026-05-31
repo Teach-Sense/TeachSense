@@ -33,7 +33,7 @@ const Login = () => {
 };
 
   return (
-    <div className="min-h-screen bg-[#071a09] flex">
+    <div className="min-h-screen bg-[#071a09] flex animate-fade-in">
       {/* Left panel */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-[#1a3d1c] relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full">
@@ -93,7 +93,7 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4 animate-stagger">
             <div>
               <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
                 Username

@@ -26,15 +26,17 @@ const Dashboard = () => {
     try {
       const sessionsRes = await sessionsAPI.getAll();
       console.log("Sessions response:", sessionsRes.data);
+      // Handle APIResponse wrapper + paginated response
       const data = sessionsRes.data;
-      setSessions(data.results ?? data);
+      const sessionsList = (data.data?.results ?? data.results ?? data);
+      setSessions(Array.isArray(sessionsList) ? sessionsList : []);
 
       try {
         const dashRes = await dashboardAPI.getAll();
-        const dashboards = dashRes.data.results ?? dashRes.data;
-        if (dashboards.length > 0) {
+        const dashboards = dashRes.data.data?.results ?? dashRes.data.results ?? dashRes.data;
+        if (Array.isArray(dashboards) && dashboards.length > 0) {
           const metricsRes = await dashboardAPI.getMetrics(dashboards[0].id);
-          setMetrics(metricsRes.data);
+          setMetrics(metricsRes.data.data ?? metricsRes.data);
         }
       } catch {
         // metrics optional
