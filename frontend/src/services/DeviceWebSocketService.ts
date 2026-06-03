@@ -5,7 +5,7 @@ export interface DeviceWebSocketOptions {
   deviceId: number;
   deviceToken: string;
   deviceType?: string; // e.g., 'audio_input'
-  onMessage?: (msg: any) => void;
+  onMessage?: (msg: unknown) => void;
   onOpen?: () => void;
   onError?: (err: Event) => void;
   onClose?: (ev: CloseEvent) => void;
@@ -30,17 +30,17 @@ export class DeviceWebSocketService {
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
       this.sendHandshake(deviceId, deviceType || 'audio_input');
-      onOpen && onOpen();
+      onOpen?.();
     };
     this.ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      onMessage && onMessage(msg);
+      const msg: unknown = JSON.parse(event.data);
+      onMessage?.(msg);
     };
     this.ws.onerror = (err) => {
-      onError && onError(err);
+      onError?.(err);
     };
     this.ws.onclose = (ev) => {
-      onClose && onClose(ev);
+      onClose?.(ev);
       this.autoReconnect();
     };
   }
@@ -64,7 +64,7 @@ export class DeviceWebSocketService {
     });
   }
 
-  public send(data: any) {
+  public send(data: unknown) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     }

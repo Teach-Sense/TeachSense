@@ -50,35 +50,60 @@ api.interceptors.response.use(
   }
 );
 
+type ErrorShape = {
+  response?: {
+    data?: unknown;
+  };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const firstStringFromValue = (value: unknown): string | null => {
+  if (Array.isArray(value)) {
+    return value.length > 0 && typeof value[0] === "string" ? value[0] : null;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return null;
+};
+
 // Handles ALL backend error formats
-export const getErrorMessage = (err: any): string => {
+export const getErrorMessage = (err: ErrorShape): string => {
   const data = err?.response?.data;
   if (!data) return "Network error. Check your connection.";
   // If backend returns structured validation errors, render them verbatim
   // e.g. { errors: { field: ["msg"] } } or DRF default { field: ["msg"] }
-  const buildFromObject = (obj: any) => {
-    try {
-      if (!obj || typeof obj !== "object") return null;
-      // Prefer `errors` wrapper
-      const source = obj.errors || obj;
-      const entries = Object.entries(source).map(([k, v]) => {
-        if (Array.isArray(v)) return `${k}: ${v.join("; ")}`;
-        if (typeof v === "object") return `${k}: ${JSON.stringify(v)}`;
-        return `${k}: ${String(v)}`;
-      });
-      return entries.join("\n");
-    } catch {
-      return null;
-    }
+  const buildFromObject = (obj: unknown) => {
+    if (!isRecord(obj)) return null;
+
+    const source = isRecord(obj.errors) ? obj.errors : obj;
+    const entries = Object.entries(source).map(([key, value]) => {
+      if (Array.isArray(value)) return `${key}: ${value.join("; ")}`;
+      if (isRecord(value)) return `${key}: ${JSON.stringify(value)}`;
+      return `${key}: ${String(value)}`;
+    });
+
+    return entries.join("\n");
   };
 
   const fromObj = buildFromObject(data);
   if (fromObj) return fromObj;
 
   // Fallbacks: message, detail, non_field_errors
-  if (data.message) return data.message;
-  if (data.detail) return data.detail;
-  if (data.non_field_errors?.[0]) return data.non_field_errors[0];
+  if (isRecord(data)) {
+    const message = firstStringFromValue(data.message);
+    if (message) return message;
+
+    const detail = firstStringFromValue(data.detail);
+    if (detail) return detail;
+
+    const nonFieldErrors = firstStringFromValue(data.non_field_errors);
+    if (nonFieldErrors) return nonFieldErrors;
+  }
 
   return "An unexpected error occurred. Please try again.";
 };
