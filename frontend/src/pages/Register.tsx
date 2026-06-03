@@ -50,7 +50,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-8">
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-8 animate-fade-in">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-9 h-9 bg-gradient-to-br from-[#5cce6a] to-[#2d9e3c] rounded-xl flex items-center justify-center shadow-lg shadow-green-900/50">
@@ -69,7 +69,7 @@ const Register = () => {
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-4 animate-stagger">
           <div>
             <label className="block text-white/40 text-xs font-mono uppercase tracking-widest mb-2">
               Username
