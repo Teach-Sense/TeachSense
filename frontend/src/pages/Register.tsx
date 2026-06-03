@@ -35,15 +35,28 @@ const Register = () => {
 
       // Step 2: Auto login using USERNAME (not email!)
       const { data } = await authAPI.login(username, password);
+      const responseData = data?.data ?? data;
 
       // Step 3: Store tokens and user info
-      localStorage.setItem("accessToken", data.access);
-      localStorage.setItem("refreshToken", data.refresh);
-      localStorage.setItem("lecturerInfo", JSON.stringify(data.user));
+      const access = responseData?.access;
+      const refresh = responseData?.refresh;
+      const user = responseData?.user;
+
+      if (!access || !refresh) {
+        throw new Error("Invalid login response");
+      }
+
+      localStorage.setItem("accessToken", access);
+      localStorage.setItem("refreshToken", refresh);
+      if (user && typeof user === "object") {
+        localStorage.setItem("lecturerInfo", JSON.stringify(user));
+      } else {
+        localStorage.removeItem("lecturerInfo");
+      }
 
       navigate("/dashboard");
-    } catch (err: any) {
-      setError(getErrorMessage(err));
+    } catch (err) {
+      setError(getErrorMessage(err as { response?: { data?: unknown } }));
     } finally {
       setLoading(false);
     }

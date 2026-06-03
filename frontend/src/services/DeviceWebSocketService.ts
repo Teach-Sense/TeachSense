@@ -33,8 +33,15 @@ export class DeviceWebSocketService {
       onOpen?.();
     };
     this.ws.onmessage = (event) => {
-      const msg: unknown = JSON.parse(event.data);
-      onMessage?.(msg);
+      if (typeof event.data !== 'string' || !event.data.trim()) {
+        return;
+      }
+      try {
+        const msg: unknown = JSON.parse(event.data);
+        onMessage?.(msg);
+      } catch {
+        // Ignore malformed WebSocket payloads from upstream.
+      }
     };
     this.ws.onerror = (err) => {
       onError?.(err);

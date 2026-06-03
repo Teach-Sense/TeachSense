@@ -14,7 +14,10 @@ const Topbar = ({ title = "Dashboard" }: Props) => {
   try {
     const stored = localStorage.getItem("lecturerInfo");
     if (stored && stored !== "undefined") {
-      lecturerInfo = JSON.parse(stored);
+      const parsed: unknown = JSON.parse(stored);
+      if (parsed && typeof parsed === "object") {
+        lecturerInfo = parsed as LecturerInfo;
+      }
     }
   } catch {
     lecturerInfo = null;

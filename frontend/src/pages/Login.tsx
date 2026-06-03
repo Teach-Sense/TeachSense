@@ -19,14 +19,25 @@ const Login = () => {
 
   try {
     const { data } = await authAPI.login(username, password);
-    // Backend wraps response in data.data
-    const responseData = data.data;
-    localStorage.setItem("accessToken", responseData.access);
-    localStorage.setItem("refreshToken", responseData.refresh);
-    localStorage.setItem("lecturerInfo", JSON.stringify(responseData.user));
+    const responseData = data?.data ?? data;
+    const access = responseData?.access;
+    const refresh = responseData?.refresh;
+    const user = responseData?.user;
+
+    if (!access || !refresh) {
+      throw new Error("Invalid login response");
+    }
+
+    localStorage.setItem("accessToken", access);
+    localStorage.setItem("refreshToken", refresh);
+    if (user && typeof user === "object") {
+      localStorage.setItem("lecturerInfo", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("lecturerInfo");
+    }
     navigate("/dashboard");
-  } catch (err: any) {
-    setError(getErrorMessage(err));
+  } catch (err) {
+    setError(getErrorMessage(err as { response?: { data?: unknown } }));
   } finally {
     setLoading(false);
   }
