@@ -73,18 +73,18 @@ const Devices = () => {
 
   return (
     <DashboardLayout title="Devices">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Hardware Devices</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Hardware Devices</h1>
             <p className="text-sm text-gray-400 mt-1">Manage classroom microphones and audio devices</p>
           </div>
           <button
             onClick={syncDevices}
             disabled={syncing}
-            className="flex items-center gap-2 border border-[#5cce6a]/30 text-[#2d9e3c] px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#f0fdf4] transition"
+            className="flex items-center justify-center gap-2 border border-[#5cce6a]/30 text-[#2d9e3c] px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#f0fdf4] transition w-full sm:w-auto"
           >
             <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
             Sync Devices
@@ -92,7 +92,7 @@ const Devices = () => {
         </div>
 
         {/* Register Device */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm">
           <h2 className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">
             Register New Device
           </h2>
@@ -136,7 +136,7 @@ const Devices = () => {
           <button
             onClick={registerDevice}
             disabled={creating || !name.trim()}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-5 py-3 rounded-xl text-sm font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-green-200"
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-5 py-3 rounded-xl text-sm font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-green-200 w-full sm:w-auto"
           >
             {creating ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
             Register Device
@@ -163,16 +163,16 @@ const Devices = () => {
               {devices.map((device) => (
                 <div
                   key={device.id}
-                  className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#5cce6a]/20 transition-all"
+                  className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-[#5cce6a]/20 transition-all"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3 sm:gap-4">
                       <div className="w-10 h-10 bg-gradient-to-br from-[#e8fbed] to-[#c6f5d0] rounded-xl flex items-center justify-center shrink-0">
                         <Cpu size={16} className="text-[#2d9e3c]" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{device.name}</h3>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <span className="text-xs text-gray-400 font-mono">
                             {deviceTypeLabel[device.type] || device.type}
                           </span>
@@ -184,22 +184,18 @@ const Devices = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      {/* Online/Offline status */}
+                    <div className="flex items-center gap-3 flex-wrap">
                       <div className={`flex items-center gap-1.5 text-xs font-mono px-3 py-1 rounded-full ${
                         device.status === "online"
                           ? "bg-emerald-50 text-emerald-600"
                           : "bg-gray-100 text-gray-400"
                       }`}>
-                        {device.status === "online"
-                          ? <Wifi size={11} />
-                          : <WifiOff size={11} />
-                        }
+                        {device.status === "online" ? <Wifi size={11} /> : <WifiOff size={11} />}
                         {device.status || "offline"}
                       </div>
 
                       {device.last_seen && (
-                        <p className="text-xs text-gray-400 font-mono hidden sm:block">
+                        <p className="text-xs text-gray-400 font-mono">
                           Last seen: {new Date(device.last_seen).toLocaleTimeString()}
                         </p>
                       )}
@@ -212,14 +208,14 @@ const Devices = () => {
         </div>
 
         {/* Hardware Setup Guide */}
-        <div className="bg-gradient-to-br from-[#0d1f0f] to-[#071a09] rounded-2xl p-6 text-white">
+        <div className="bg-gradient-to-br from-[#0d1f0f] to-[#071a09] rounded-2xl p-4 sm:p-6 text-white">
           <h2 className="text-xs font-mono uppercase tracking-widest text-[#5cce6a]/60 mb-3">
             Hardware Setup
           </h2>
           <p className="text-sm text-white/60 mb-4">
             To connect an Arduino or ESP32 device, use the WebSocket endpoint:
           </p>
-          <div className="bg-black/30 rounded-xl p-4 font-mono text-xs text-[#5cce6a] overflow-x-auto">
+          <div className="bg-black/30 rounded-xl p-3 sm:p-4 font-mono text-xs text-[#5cce6a] overflow-x-auto">
             wss://teachsense.onrender.com/ws/devices/&#123;device_id&#125;/
           </div>
           <p className="text-xs text-white/40 mt-3">

@@ -23,7 +23,6 @@ const SessionPage = () => {
   const [transcriptText, setTranscriptText] = useState("");
   const [submittingTranscript, setSubmittingTranscript] = useState(false);
 
-  // WebSocket state
   const [wsStatus, setWsStatus] = useState<WSStatus>("disconnected");
   const [liveTranscript, setLiveTranscript] = useState("");
   const [liveQuestions, setLiveQuestions] = useState<string[]>([]);
@@ -40,7 +39,6 @@ const SessionPage = () => {
         questionsAPI.getAll(id),
       ]);
       setSession(sessionRes.data);
-      // Handle paginated responses
       setTranscripts(transcriptRes.data.results ?? transcriptRes.data);
       setQuestions(questionsRes.data.results ?? questionsRes.data);
 
@@ -59,14 +57,10 @@ const SessionPage = () => {
     }
   }, [id]);
 
-  // ─── WebSocket Heartbeat ──────────────────────────────
   const startHeartbeat = useCallback(() => {
     heartbeatRef.current = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: "ping",
-          timestamp: new Date().toISOString(),
-        }));
+        wsRef.current.send(JSON.stringify({ type: "ping", timestamp: new Date().toISOString() }));
       }
     }, 30000);
   }, []);
@@ -78,73 +72,46 @@ const SessionPage = () => {
     }
   }, []);
 
-  // ─── WebSocket Connection ─────────────────────────────
   const connectWebSocket = useCallback(() => {
-    // Get token from localStorage (not lecturerInfo)
     const token = localStorage.getItem("accessToken");
     if (!token || !id) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     setWsStatus("connecting");
-
     const ws = new WebSocket(`${WS_BASE_URL}/sessions/${id}/?token=${token}`);
     wsRef.current = ws;
 
-    ws.onopen = () => {
-      setWsStatus("connected");
-      startHeartbeat();
-    };
+    ws.onopen = () => { setWsStatus("connected"); startHeartbeat(); };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         switch (data.type) {
           case "transcript.update":
             setLiveTranscript((prev) => prev + " " + data.transcript_segment);
-            setTimeout(() => {
-              transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, 100);
+            setTimeout(() => { transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, 100);
             break;
-
           case "question.updated":
             setLiveQuestions((prev) => [...prev, data.answer ?? data.question_id]);
             break;
-
-          case "metrics.update":
-            // Dashboard metrics via WS
-            break;
-
           case "sessions.update":
             if (data.session?.id === id) {
               setSession((prev) => prev ? { ...prev, status: data.session.status } : prev);
               if (data.session.status === "completed") fetchAll();
             }
             break;
-
-          case "pong":
-            // heartbeat response — do nothing
-            break;
-
-          case "error":
-            console.error("WS error:", data.message);
-            break;
-
-          default:
-            console.log("WS message:", data);
+          case "pong": break;
+          case "error": console.error("WS error:", data.message); break;
+          default: console.log("WS message:", data);
         }
-      } catch (err) {
-        console.error("Failed to parse WS message:", err);
-      }
+      } catch (err) { console.error("Failed to parse WS message:", err); }
     };
 
     ws.onerror = () => setWsStatus("error");
-
     ws.onclose = (event) => {
       setWsStatus("disconnected");
       stopHeartbeat();
       wsRef.current = null;
-      // If policy violation (auth error) don't reconnect
       if (event.code === 1008) return;
     };
   }, [id, fetchAll, startHeartbeat, stopHeartbeat]);
@@ -156,54 +123,32 @@ const SessionPage = () => {
     setWsStatus("disconnected");
   }, [stopHeartbeat]);
 
-  // Auto-connect when session is ongoing
   useEffect(() => {
-    if (session?.status === "ongoing") {
-      connectWebSocket();
-    } else {
-      disconnectWebSocket();
-    }
+    if (session?.status === "ongoing") { connectWebSocket(); }
+    else { disconnectWebSocket(); }
     return () => disconnectWebSocket();
   }, [session?.status]);
 
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const updateStatus = async (status: string) => {
-    try {
-      await sessionsAPI.update(id, { status });
-      fetchAll();
-    } catch (error) {
-      console.error(error);
-    }
+    try { await sessionsAPI.update(id, { status }); fetchAll(); }
+    catch (error) { console.error(error); }
   };
 
   const submitTranscript = async () => {
     if (!transcriptText.trim()) return;
     setSubmittingTranscript(true);
-    try {
-      await transcriptsAPI.create(id, transcriptText);
-      setTranscriptText("");
-      fetchAll();
-    } catch (error) {
-      console.error("Failed to submit transcript:", error);
-    } finally {
-      setSubmittingTranscript(false);
-    }
+    try { await transcriptsAPI.create(id, transcriptText); setTranscriptText(""); fetchAll(); }
+    catch (error) { console.error("Failed to submit transcript:", error); }
+    finally { setSubmittingTranscript(false); }
   };
 
   const uploadAudioFile = async (file: File) => {
     setUploading(true);
-    try {
-      const text = await file.text();
-      await transcriptsAPI.create(id, text);
-      fetchAll();
-    } catch (error) {
-      console.error("Upload failed:", error);
-    } finally {
-      setUploading(false);
-    }
+    try { const text = await file.text(); await transcriptsAPI.create(id, text); fetchAll(); }
+    catch (error) { console.error("Upload failed:", error); }
+    finally { setUploading(false); }
   };
 
   const wsStatusConfig = {
@@ -218,7 +163,8 @@ const SessionPage = () => {
 
   return (
     <DashboardLayout title="Session Control">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+
         <button
           onClick={() => navigate("/dashboard")}
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#2d9e3c] transition"
@@ -235,12 +181,12 @@ const SessionPage = () => {
         ) : (
           <>
             {/* Session Header */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div>
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
                   <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-1">Session</p>
-                  <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
-                  <div className="flex items-center gap-3 mt-1">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{session.title}</h1>
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <p className="text-sm text-gray-400 font-mono">ID: {session.id}</p>
                     {session.session_code && (
                       <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md font-mono">
@@ -249,7 +195,7 @@ const SessionPage = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 flex-wrap">
                   <span className={`text-xs font-mono px-3 py-1 rounded-full border capitalize ${
                     session.status === "ongoing"
                       ? "bg-emerald-100 text-emerald-700 border-emerald-200"
@@ -270,17 +216,15 @@ const SessionPage = () => {
               </div>
 
               {session.status === "ongoing" && (
-                <div className="flex items-center justify-between mt-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Mic size={15} className="text-emerald-600 animate-pulse" />
-                    <span className="text-sm text-emerald-700 font-medium">
-                      Session is live — recording in progress
-                    </span>
+                    <Mic size={15} className="text-emerald-600 animate-pulse shrink-0" />
+                    <span className="text-sm text-emerald-700 font-medium">Session is live — recording in progress</span>
                   </div>
                   {wsStatus !== "connected" && (
                     <button
                       onClick={connectWebSocket}
-                      className="text-xs text-emerald-700 border border-emerald-200 px-3 py-1 rounded-lg hover:bg-emerald-100 transition"
+                      className="text-xs text-emerald-700 border border-emerald-200 px-3 py-1 rounded-lg hover:bg-emerald-100 transition self-start sm:self-auto"
                     >
                       Reconnect
                     </button>
@@ -289,9 +233,9 @@ const SessionPage = () => {
               )}
 
               {analytics?.avg_engagement_score !== undefined && (
-                <div className="mt-4 bg-gradient-to-r from-[#f0fdf4] to-[#e8fbed] border border-[#5cce6a]/20 rounded-xl px-5 py-4 flex items-center justify-between">
+                <div className="mt-4 bg-gradient-to-r from-[#f0fdf4] to-[#e8fbed] border border-[#5cce6a]/20 rounded-xl px-4 sm:px-5 py-4 flex items-center justify-between">
                   <span className="text-sm text-[#2d9e3c] font-medium">Avg Engagement Score</span>
-                  <span className="text-3xl font-bold font-mono text-[#2d9e3c]">
+                  <span className="text-2xl sm:text-3xl font-bold font-mono text-[#2d9e3c]">
                     {analytics.avg_engagement_score}
                   </span>
                 </div>
@@ -299,13 +243,13 @@ const SessionPage = () => {
             </div>
 
             {/* Controls */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm">
               <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4">Controls</p>
               <div className="flex flex-wrap gap-3">
                 {session.status === "scheduled" && (
                   <button
                     onClick={() => updateStatus("ongoing")}
-                    className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-6 py-3 rounded-xl text-sm font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition shadow-md shadow-green-200"
+                    className="flex items-center gap-2 bg-gradient-to-r from-[#2d9e3c] to-[#5cce6a] text-white px-5 sm:px-6 py-3 rounded-xl text-sm font-bold hover:from-[#3dae4c] hover:to-[#6cde7a] transition shadow-md shadow-green-200"
                   >
                     <Play size={15} fill="white" /> Start Session
                   </button>
@@ -314,32 +258,29 @@ const SessionPage = () => {
                 {session.status === "ongoing" && (
                   <button
                     onClick={() => updateStatus("completed")}
-                    className="flex items-center gap-2 bg-red-500 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-red-600 transition"
+                    className="flex items-center gap-2 bg-red-500 text-white px-5 sm:px-6 py-3 rounded-xl text-sm font-bold hover:bg-red-600 transition"
                   >
                     <Square size={15} fill="white" /> End Session
                   </button>
                 )}
 
-                <label className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-700 transition">
+                <label className="flex items-center gap-2 bg-gray-900 text-white px-5 sm:px-6 py-3 rounded-xl text-sm font-medium cursor-pointer hover:bg-gray-700 transition">
                   {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-                  {uploading ? "Processing..." : "Upload Transcript File"}
+                  {uploading ? "Processing..." : "Upload Transcript"}
                   <input
                     type="file"
                     accept=".txt,.doc,.docx"
                     hidden
                     disabled={uploading}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) uploadAudioFile(file);
-                    }}
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadAudioFile(file); }}
                   />
                 </label>
               </div>
             </div>
 
-            {/* Live Transcript (WebSocket) */}
+            {/* Live Transcript */}
             {session.status === "ongoing" && (
-              <div className="bg-white border border-[#5cce6a]/20 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-[#5cce6a]/20 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Radio size={15} className="text-[#2d9e3c] animate-pulse" />
@@ -352,7 +293,7 @@ const SessionPage = () => {
                   )}
                 </div>
 
-                <div className="min-h-24 max-h-64 overflow-y-auto bg-[#f4faf5] rounded-xl p-4">
+                <div className="min-h-24 max-h-48 sm:max-h-64 overflow-y-auto bg-[#f4faf5] rounded-xl p-3 sm:p-4">
                   {liveTranscript ? (
                     <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{liveTranscript}</p>
                   ) : (
@@ -379,7 +320,7 @@ const SessionPage = () => {
             )}
 
             {/* Manual Transcript Entry */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm">
               <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-3">Add Transcript Manually</p>
               <textarea
                 rows={4}
@@ -400,7 +341,7 @@ const SessionPage = () => {
 
             {/* Saved Transcripts */}
             {transcripts.length > 0 && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <FileText size={15} className="text-[#2d9e3c]" />
                   <p className="text-xs font-mono text-gray-400 uppercase tracking-widest">Saved Transcripts</p>
@@ -415,14 +356,14 @@ const SessionPage = () => {
 
             {/* Questions */}
             {questions.length > 0 && (
-              <div className="bg-[#f0fdf4] border border-[#5cce6a]/20 rounded-2xl p-6">
+              <div className="bg-[#f0fdf4] border border-[#5cce6a]/20 rounded-2xl p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <HelpCircle size={15} className="text-[#2d9e3c]" />
                   <p className="text-xs font-mono text-[#2d9e3c] uppercase tracking-widest">Questions</p>
                 </div>
                 <div className="space-y-3">
                   {questions.map((q, i) => (
-                    <div key={q.id} className="bg-white rounded-xl p-4 border border-[#5cce6a]/10">
+                    <div key={q.id} className="bg-white rounded-xl p-3 sm:p-4 border border-[#5cce6a]/10">
                       <p className="text-sm text-gray-700 font-medium">{i + 1}. {q.text}</p>
                       {q.answer && (
                         <p className="text-sm text-[#2d9e3c] mt-2">
@@ -437,19 +378,19 @@ const SessionPage = () => {
 
             {/* Analytics */}
             {analytics && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <p className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4">Session Analytics</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <div className="bg-[#f4faf5] rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold font-mono text-[#2d9e3c]">{analytics.total_participants}</p>
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-[#f4faf5] rounded-xl p-3 sm:p-4 text-center">
+                    <p className="text-xl sm:text-2xl font-bold font-mono text-[#2d9e3c]">{analytics.total_participants}</p>
                     <p className="text-xs text-gray-400 mt-1">Participants</p>
                   </div>
-                  <div className="bg-[#f4faf5] rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold font-mono text-[#2d9e3c]">{analytics.questions_asked}</p>
+                  <div className="bg-[#f4faf5] rounded-xl p-3 sm:p-4 text-center">
+                    <p className="text-xl sm:text-2xl font-bold font-mono text-[#2d9e3c]">{analytics.questions_asked}</p>
                     <p className="text-xs text-gray-400 mt-1">Questions</p>
                   </div>
-                  <div className="bg-[#f4faf5] rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold font-mono text-[#2d9e3c]">{(analytics.participation_rate * 100).toFixed(0)}%</p>
+                  <div className="bg-[#f4faf5] rounded-xl p-3 sm:p-4 text-center">
+                    <p className="text-xl sm:text-2xl font-bold font-mono text-[#2d9e3c]">{(analytics.participation_rate * 100).toFixed(0)}%</p>
                     <p className="text-xs text-gray-400 mt-1">Participation</p>
                   </div>
                 </div>
