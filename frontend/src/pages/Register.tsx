@@ -34,13 +34,12 @@ const Register = () => {
       await authAPI.register(username, email, password, passwordConfirm);
 
       // Step 2: Auto login using USERNAME (not email!)
-      const { data } = await authAPI.login(username, password);
-      const responseData = data?.data ?? data;
+  const { data } = await authAPI.login(username, password);
+   const responseData = data?.data ?? data;
 
-      // Step 3: Store tokens and user info
-      const access = responseData?.access;
-      const refresh = responseData?.refresh;
-      const user = responseData?.user;
+const access = responseData?.tokens?.access;
+const refresh = responseData?.tokens?.refresh;
+const user = responseData?.user;
 
       if (!access || !refresh) {
         throw new Error("Invalid login response");

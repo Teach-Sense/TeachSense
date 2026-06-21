@@ -24,8 +24,9 @@ export class DeviceWebSocketService {
 
   private connect() {
     const { deviceId, deviceToken, onMessage, onOpen, onError, onClose, deviceType } = this.options;
+    const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000/ws";
     this.ws = new WebSocket(
-      `wss://teachsense.onrender.com/ws/devices/${deviceId}/?token=${deviceToken}`
+      `${wsBaseUrl.replace(/\/$/, "")}/devices/${deviceId}/?token=${deviceToken}`
     );
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;

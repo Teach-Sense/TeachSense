@@ -20,8 +20,8 @@ const Login = () => {
   try {
     const { data } = await authAPI.login(username, password);
     const responseData = data?.data ?? data;
-    const access = responseData?.access;
-    const refresh = responseData?.refresh;
+    const access = responseData?.tokens?.access; 
+    const refresh = responseData?.tokens?.refresh; 
     const user = responseData?.user;
 
     if (!access || !refresh) {

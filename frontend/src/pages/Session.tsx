@@ -5,7 +5,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import { sessionsAPI, transcriptsAPI, questionsAPI, analyticsAPI } from "../services/api";
 import type { Session, Transcript, Question, Analytics } from "../types/session";
 
-const WS_BASE_URL = "wss://teachsense.onrender.com/ws";
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000/ws";
 
 type WSStatus = "disconnected" | "connecting" | "connected" | "error";
 
