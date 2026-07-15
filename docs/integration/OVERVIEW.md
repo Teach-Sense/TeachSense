@@ -129,6 +129,13 @@ REDIS_URL=redis://host:port/0
 # Device Integration
 HARDWARE_API_KEY=your-hardware-api-key
 DEVICE_AUTH_SECRET=your-device-secret
+
+# Optional MATLAB advanced audio processing engine (default: off)
+# When False, the platform runs with pure Python preprocessing.
+ENABLE_MATLAB=False
+MATLAB_START_TIMEOUT=60      # seconds to wait for the MATLAB engine to start
+MATLAB_CALL_TIMEOUT=120      # per-call timeout for MATLAB computations
+MATLAB_RETRIES=1             # automatic retries on transient MATLAB failures
 ```
 
 ## Support & Resources

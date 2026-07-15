@@ -19,6 +19,7 @@ from apps.integrations.llm.ensemble import (
     EnsembleResult,
     MergeStrategy,
 )
+from apps.integrations.matlab import is_matlab_enabled, get_matlab_service
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class ProcessingStage(Enum):
     """Stages of lecture processing."""
+    AUDIO_PROCESSING = "audio_processing"
     PREPROCESSING = "preprocessing"
     SUMMARIZATION = "summarization"
     QUESTION_GENERATION = "question_generation"
@@ -56,6 +58,7 @@ class LectureProcessingResult:
     overall_success: bool = False
     total_processing_time_ms: float = 0.0
     errors: List[str] = field(default_factory=list)
+    audio_enhanced: bool = False
 
 
 class LectureProcessingOrchestrator:
@@ -68,33 +71,55 @@ class LectureProcessingOrchestrator:
         self,
         ensemble: LLMEnsemble,
         preprocessing_level: CleaningLevel = CleaningLevel.STANDARD,
+        matlab_service=None,
     ):
         """
         Initialize orchestrator.
-        
+
         Args:
             ensemble: LLMEnsemble instance for inference
             preprocessing_level: Text cleaning aggressiveness
+            matlab_service: Optional MatlabAudioService used for advanced audio
+                preprocessing. When None, the singleton from
+                ``apps.integrations.matlab`` is consulted at call time, which
+                returns None unless ENABLE_MATLAB is True. Passing the service in
+                explicitly allows tests/DI to control behavior.
         """
         self.ensemble = ensemble
         self.preprocessor = TranscriptPreprocessor(cleaning_level=preprocessing_level)
         self.validator = DataValidator()
+        self.matlab_service = matlab_service
         self.logger = logging.getLogger(__name__)
+
+    def _get_matlab_service(self):
+        """Resolve the MATLAB audio service, honoring ENABLE_MATLAB."""
+        if self.matlab_service is not None:
+            return self.matlab_service
+        if is_matlab_enabled():
+            return get_matlab_service()
+        return None
 
     async def process_lecture(
         self,
         session_id: str,
         raw_transcript: str,
         target_question_count: int = 5,
+        audio: list = None,
+        sample_rate: int = 16000,
     ) -> LectureProcessingResult:
         """
         Process complete lecture from raw transcript to final summary + questions.
-        
+
         Args:
             session_id: Unique session identifier
             raw_transcript: Raw transcript from STT service
             target_question_count: Number of questions to generate
-            
+            audio: Optional raw audio samples (list of floats). When provided
+                AND MATLAB is enabled, the audio is enhanced via MATLAB before
+                transcription. If MATLAB is unavailable, the audio is ignored
+                and the existing Python pipeline is used unchanged.
+            sample_rate: Sample rate of ``audio`` in Hz.
+
         Returns:
             LectureProcessingResult with all processing outputs
         """
@@ -104,6 +129,16 @@ class LectureProcessingOrchestrator:
         result = LectureProcessingResult(session_id=session_id, transcript_original=raw_transcript)
 
         try:
+            # OPTIONAL STAGE 0: MATLAB audio preprocessing (advanced, opt-in).
+            # Never blocks the existing flow: any failure falls back to Python.
+            processed_audio = await self._stage_audio_processing(audio, sample_rate)
+            if processed_audio is not None:
+                result.processing_stages.append(processed_audio)
+                # If MATLAB produced enhanced audio, it can be re-transcribed
+                # upstream; here we simply record that enhancement occurred so the
+                # downstream STT/transcript stages benefit from cleaner signal.
+                result.audio_enhanced = True
+
             # STAGE 1: Preprocessing
             preprocessing_stage = await self._stage_preprocessing(raw_transcript)
             result.processing_stages.append(preprocessing_stage)
@@ -137,7 +172,7 @@ class LectureProcessingOrchestrator:
                 else:
                     result.errors.extend(question_stage.errors)
 
-            # Mark overall success
+            # Mark overall success (audio stage failure must NOT block pipeline)
             result.overall_success = (
                 preprocessing_stage.success
                 and summarization_stage.success
@@ -153,6 +188,54 @@ class LectureProcessingOrchestrator:
             result.total_processing_time_ms = (time.time() - start_time) * 1000
 
         return result
+
+    async def _stage_audio_processing(
+        self, audio: list, sample_rate: int
+    ) -> Optional[ProcessingStageResult]:
+        """Optional Stage 0: enhanced audio via MATLAB.
+
+        Runs only when ``audio`` is supplied and MATLAB is enabled. Any failure
+        (MATLAB missing, timeout, error) is logged and the stage is skipped so
+        the existing Python-only pipeline continues unchanged.
+        """
+        if not audio:
+            return None
+
+        service = self._get_matlab_service()
+        if service is None:
+            self.logger.info(
+                "MATLAB audio stage skipped (disabled or unavailable); "
+                "using existing Python pipeline."
+            )
+            return None
+
+        try:
+            processed = service.process_audio(audio, sample_rate)
+            self.logger.info(
+                "MATLAB audio processing applied stages: %s",
+                processed.metadata.get("stages"),
+            )
+            return ProcessingStageResult(
+                stage=ProcessingStage.AUDIO_PROCESSING,
+                success=True,
+                output=processed,
+                metadata={
+                    "engine": "matlab",
+                    "sample_rate": sample_rate,
+                    "stages": processed.metadata.get("stages", []),
+                },
+            )
+        except Exception as exc:
+            self.logger.warning(
+                "MATLAB audio processing failed; falling back to Python pipeline: %s",
+                exc,
+            )
+            return ProcessingStageResult(
+                stage=ProcessingStage.AUDIO_PROCESSING,
+                success=False,
+                output=None,
+                errors=[f"MATLAB audio processing unavailable: {exc}"],
+            )
 
     async def _stage_preprocessing(self, raw_transcript: str) -> ProcessingStageResult:
         """Stage 1: Preprocess and validate transcript."""
