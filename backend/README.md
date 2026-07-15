@@ -22,13 +22,17 @@ MATLAB license.
 ### Enabling MATLAB
 
 1. Install a licensed MATLAB on the host.
-2. Install the MATLAB Engine API for Python in the same Python environment:
+2. Install the MATLAB Engine API for Python from **your own MATLAB installation**
+   (it is not on PyPI and is intentionally absent from `requirements.txt`):
    ```bash
-   # from the MATLAB root:
+   # Windows
+   cd "C:\Program Files\MATLAB\R2025a\extern\engines\python"
+   python -m pip install .
+
+   # macOS / Linux
    cd "$(matlab -batch 'disp(matlabroot)')/extern/engines/python"
-   python setup.py install
+   python -m pip install .
    ```
-   (dependency is intentionally commented out in `requirements.txt`.)
 3. Set the environment variables:
    ```env
    ENABLE_MATLAB=True

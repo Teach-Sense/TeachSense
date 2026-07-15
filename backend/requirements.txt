@@ -22,8 +22,3 @@ boto3==1.35.10
 whitenoise==6.7.0
 gunicorn==22.0.0
 django-storages[boto3]==1.13.2
-
-# MATLAB Engine API for Python (optional advanced audio processing).
-# Install only on hosts that have a licensed MATLAB installation.
-# When ENABLE_MATLAB=False (default) this dependency is never imported.
-matlabengine==9.13.0
