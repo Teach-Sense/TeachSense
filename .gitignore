@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtualenv
+.venv/
+
+# Django local files
+db.sqlite3
+media/
+
+# Env files
+backend/.env
+.env
+
+# Node
+node_modules/
+
+# MATLAB Engine artifacts (generated, never commit)
+*.m~ 
+matlab_crash_dump.*
+MATLAB_*.log
+.jupyter/
+mex_*.o
+
