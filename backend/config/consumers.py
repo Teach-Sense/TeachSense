@@ -162,3 +162,74 @@ class DashboardConsumer(AsyncWebsocketConsumer):
 
     async def send_error(self, message: str):
         await self.send(text_data=json.dumps({"type": "error", "message": message}))
+
+        
+class DeviceConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.device_id = self.scope["url_route"]["kwargs"]["device_token"]
+        self.room_group_name = f"device_{self.device_id}"
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+            event_type = data.get("type")
+
+            if event_type == "handshake":
+                await self.handle_handshake(data)
+            elif event_type == "audio_frame":
+                await self.handle_audio_frame(data)
+            elif event_type == "heartbeat":
+                await self.handle_heartbeat(data)
+        except json.JSONDecodeError:
+            await self.send_error("Invalid JSON format")
+
+    async def handle_handshake(self, data: Dict[str, Any]):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "handshake_ack",
+                    "device_id": self.device_id,
+                    "status": "connected",
+                }
+            )
+        )
+
+    async def handle_audio_frame(self, data: Dict[str, Any]):
+        session_id = data.get("session_id")
+        if session_id is None:
+            await self.send_error("session_id is required for audio_frame")
+            return
+
+        await self.channel_layer.group_send(
+            f"session_{session_id}",
+            {
+                "type": "audio.frame",
+                "device_id": self.device_id,
+                "timestamp": data.get("timestamp"),
+                "data_base64": data.get("data_base64"),
+            },
+        )
+
+    async def handle_heartbeat(self, data: Dict[str, Any]):
+        await self.send(text_data=json.dumps({"type": "heartbeat_ack"}))
+
+    async def audio_frame(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "audio_frame",
+                    "device_id": event["device_id"],
+                    "timestamp": event["timestamp"],
+                    "data_base64": event["data_base64"],
+                }
+            )
+        )
+
+    async def send_error(self, message: str):
+        await self.send(text_data=json.dumps({"type": "error", "message": message}))

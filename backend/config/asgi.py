@@ -12,7 +12,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django_asgi_app = get_asgi_application()
 
 # Import consumers after Django setup
-from .consumers import SessionConsumer, DashboardConsumer, DeviceConsumer
+from .consumers import SessionConsumer, DashboardConsumer
+from apps.devices.consumers import DeviceConsumer
 
 application = ProtocolTypeRouter(
     {
