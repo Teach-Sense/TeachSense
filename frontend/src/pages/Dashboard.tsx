@@ -3,43 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Play, Square, ChevronRight, Loader2, BookOpen, BarChart2, CheckCircle2 } from "lucide-react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
-import { sessionsAPI, dashboardAPI } from "../services/api";
-import type { Session, DashboardMetrics } from "../types/session";
+import { sessionsAPI } from "../services/api";
+import { useWebSocket } from "../hooks/useWebSocket";
+import type { Session } from "../types/session";
 
 const statusStyle: Record<string, string> = {
   ongoing: "bg-emerald-100 text-emerald-700 border-emerald-200",
   completed: "bg-gray-100 text-gray-500 border-gray-200",
   scheduled: "bg-amber-100 text-amber-700 border-amber-200",
 };
-const fetchData = useCallback(async () => {
-  setError(null);
-  try {
-    const sessionsRes = await sessionsAPI.getAll();
-    const data = sessionsRes.data;
-    const sessionsList = data.data?.results ?? data.results ?? data;
-    setSessions(Array.isArray(sessionsList) ? sessionsList : []);
 
-    try {
-      const overviewRes = await dashboardAPI.getOverview();
-      setMetrics(overviewRes.data.data ?? overviewRes.data);
-    } catch {
-      // metrics optional
-    }
-  } catch (err: any) {
-    setError(
-      err?.response?.status === 401
-        ? "You are not authenticated. Please log in again."
-        : `Failed to load dashboard: ${err?.response?.data?.detail || err?.message || "Unknown error"}`
-    );
-  } finally {
-    setLoading(false);
-  }
-}, []);
 const Dashboard = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,17 +28,6 @@ const Dashboard = () => {
       const data = sessionsRes.data;
       const sessionsList = data.data?.results ?? data.results ?? data;
       setSessions(Array.isArray(sessionsList) ? sessionsList : []);
-
-      try {
-        const dashRes = await dashboardAPI.getAll();
-        const dashboards = dashRes.data.data?.results ?? dashRes.data.results ?? dashRes.data;
-        if (Array.isArray(dashboards) && dashboards.length > 0) {
-          const metricsRes = await dashboardAPI.getMetrics(dashboards[0].id);
-          setMetrics(metricsRes.data.data ?? metricsRes.data);
-        }
-      } catch {
-        // metrics optional
-      }
     } catch (err: any) {
       setError(
         err?.response?.status === 401
@@ -76,6 +42,15 @@ const Dashboard = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Live updates: DashboardConsumer broadcasts "sessions_update" and
+  // "metrics_update" events. On any sessions_update, just refetch —
+  // simplest and safest way to stay in sync with the backend.
+  useWebSocket("dashboard/", (data) => {
+    if (data?.type === "sessions_update") {
+      fetchData();
+    }
+  });
 
   const createSession = async () => {
     if (!title.trim()) return;
@@ -101,6 +76,7 @@ const Dashboard = () => {
   };
 
   const completedSessions = sessions.filter((s) => s.status === "completed");
+  const ongoingSessions = sessions.filter((s) => s.status === "ongoing");
 
   if (error) {
     return (
@@ -138,8 +114,8 @@ const Dashboard = () => {
             icon={<CheckCircle2 size={16} />}
           />
           <StatCard
-            title="Avg Engagement"
-            value={metrics?.avg_engagement ? `${metrics.avg_engagement}` : "—"}
+            title="Ongoing"
+            value={String(ongoingSessions.length)}
             accent="text-amber-600"
             icon={<BarChart2 size={16} />}
           />
