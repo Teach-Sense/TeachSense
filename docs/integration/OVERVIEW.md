@@ -26,13 +26,13 @@ Frontend Application (React/Vue/etc)
 - Standard CRUD operations
 - Authentication via JWT tokens
 - Request/Response via JSON
-- Base URL: `https://teachsense.onrender.com/api/`
+- Base URL: `https://teachsense.up.railway.app/api/`
 
 ### 2. **WebSocket** (Real-time)
 - Live transcript updates
 - Question/Response interactions
 - Dashboard metrics streaming
-- Base URL: `wss://teachsense.onrender.com/ws/`
+- Base URL: `wss://teachsense.up.railway.app/ws/`
 
 ### 3. **Hardware Integration**
 - Device registration and management
@@ -41,7 +41,7 @@ Frontend Application (React/Vue/etc)
 - Audio processing (STT/TTS)
 
 ### 4. **Documentation**
-- Interactive Swagger UI at `https://teachsense.onrender.com/docs/`
+- Interactive Swagger UI at `https://teachsense.up.railway.app/docs/`
 - OpenAPI schema at `/api/schema/`
 - This integration guide
 
@@ -51,8 +51,8 @@ Frontend Application (React/Vue/etc)
 
 ```javascript
 // Initialize API client
-const API_BASE = 'https://teachsense.onrender.com/api';
-const WS_BASE = 'wss://teachsense.onrender.com/ws';
+const API_BASE = 'https://teachsense.up.railway.app/api';
+const WS_BASE = 'wss://teachsense.up.railway.app/ws';
 
 // Authenticate
 const token = await loginUser(email, password);
@@ -116,7 +116,7 @@ const sessionWs = new WebSocket(
 ```env
 # Backend
 DEBUG=False
-ALLOWED_HOSTS=teachsense.onrender.com,localhost
+ALLOWED_HOSTS=teachsense.up.railway.app,localhost
 SECRET_KEY=your-secret-key
 JWT_SECRET=your-jwt-secret
 

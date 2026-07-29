@@ -132,7 +132,7 @@ Hardware integration enables TeachSense to connect with various devices for audi
   "protocol": "websocket",
   "auth_token": "device_token_xyz123",
   "created_at": "2024-05-23T10:00:00Z",
-  "ws_url": "wss://teachsense.onrender.com/ws/devices/device_xyz123/"
+  "ws_url": "wss://teachsense.up.railway.app/ws/devices/device_xyz123/"
 }
 ```
 
@@ -140,7 +140,7 @@ Hardware integration enables TeachSense to connect with various devices for audi
 
 **WebSocket Connection:**
 ```
-wss://teachsense.onrender.com/ws/devices/<device_id>/?token=<auth_token>
+wss://teachsense.up.railway.app/ws/devices/<device_id>/?token=<auth_token>
 ```
 
 **HTTP Headers:**
@@ -184,7 +184,7 @@ Content-Type: application/json
 ```javascript
 const deviceToken = 'device_token_xyz123';
 const deviceWs = new WebSocket(
-  `wss://teachsense.onrender.com/ws/devices/audio_input_01/?token=${deviceToken}`
+  `wss://teachsense.up.railway.app/ws/devices/audio_input_01/?token=${deviceToken}`
 );
 ```
 
@@ -327,7 +327,7 @@ Accept: audio/mpeg
 **Response:**
 ```json
 {
-  "audio_url": "https://teachsense.onrender.com/media/tts/audio_abc123.mp3",
+  "audio_url": "https://teachsense.up.railway.app/media/tts/audio_abc123.mp3",
   "duration_seconds": 2.5,
   "status": "generated",
   "timestamp": "2024-05-23T10:01:00Z"
@@ -459,7 +459,7 @@ Device ← [Disconnected] ← Backend
 class DeviceManager {
   async connectDevice(deviceId, deviceToken) {
     this.ws = new WebSocket(
-      `wss://teachsense.onrender.com/ws/devices/${deviceId}/?token=${deviceToken}`
+      `wss://teachsense.up.railway.app/ws/devices/${deviceId}/?token=${deviceToken}`
     );
 
     this.ws.addEventListener('message', (event) => {
