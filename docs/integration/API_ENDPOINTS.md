@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-https://teachsense.onrender.com/api
+https://teachsense.up.railway.app/api
 ```
 
 ## Authentication
@@ -118,7 +118,7 @@ Create a new lecture session.
   "title": "Introduction to Django",
   "status": "scheduled",
   "session_code": "ABC123XYZ",
-  "ws_url": "wss://teachsense.onrender.com/ws/sessions/43/"
+  "ws_url": "wss://teachsense.up.railway.app/ws/sessions/43/"
 }
 ```
 
@@ -136,7 +136,7 @@ Get specific session details.
   "questions_count": 12,
   "responses_count": 35,
   "transcript": "Lorem ipsum...",
-  "ws_url": "wss://teachsense.onrender.com/ws/sessions/1/"
+  "ws_url": "wss://teachsense.up.railway.app/ws/sessions/1/"
 }
 ```
 

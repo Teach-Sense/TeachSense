@@ -22,7 +22,7 @@ Complete integration guide for developers building with TeachSense backend API.
 All API calls require JWT token. Get one by logging in:
 
 ```bash
-curl -X POST https://teachsense.onrender.com/api/auth/login/ \
+curl -X POST https://teachsense.up.railway.app/api/auth/login/ \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com","password":"password123"}'
 ```
@@ -35,13 +35,13 @@ Create a session and manage lecture data:
 
 ```bash
 # Create session
-curl -X POST https://teachsense.onrender.com/api/sessions/ \
+curl -X POST https://teachsense.up.railway.app/api/sessions/ \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"title":"My Lecture"}'
 
 # List sessions
-curl https://teachsense.onrender.com/api/sessions/ \
+curl https://teachsense.up.railway.app/api/sessions/ \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -53,7 +53,7 @@ Subscribe to live updates:
 
 ```javascript
 const ws = new WebSocket(
-  'wss://teachsense.onrender.com/ws/sessions/1/?token=<token>'
+  'wss://teachsense.up.railway.app/ws/sessions/1/?token=<token>'
 );
 
 ws.onmessage = (event) => {
@@ -70,7 +70,7 @@ Connect audio devices:
 
 ```bash
 # Register device
-curl -X POST https://teachsense.onrender.com/api/devices/ \
+curl -X POST https://teachsense.up.railway.app/api/devices/ \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -87,20 +87,20 @@ See [HARDWARE.md](./integration/HARDWARE.md) for full details.
 ## API Base URL
 
 ```
-https://teachsense.onrender.com/api
+https://teachsense.up.railway.app/api
 ```
 
 ## WebSocket Base URL
 
 ```
-wss://teachsense.onrender.com/ws
+wss://teachsense.up.railway.app/ws
 ```
 
 ## Interactive Docs
 
-- **Swagger UI**: https://teachsense.onrender.com/docs/
-- **OpenAPI Schema**: https://teachsense.onrender.com/api/schema/
-- **Health Check**: https://teachsense.onrender.com/api/health/
+- **Swagger UI**: https://teachsense.up.railway.app/docs/
+- **OpenAPI Schema**: https://teachsense.up.railway.app/api/schema/
+- **Health Check**: https://teachsense.up.railway.app/api/health/
 
 ---
 
@@ -117,7 +117,7 @@ function LectureViewer({ sessionId }) {
 
   useEffect(() => {
     const ws = new WebSocket(
-      `wss://teachsense.onrender.com/ws/sessions/${sessionId}/?token=${token}`
+      `wss://teachsense.up.railway.app/ws/sessions/${sessionId}/?token=${token}`
     );
 
     ws.onmessage = (event) => {
@@ -167,7 +167,7 @@ class TeachSenseClient:
         return response.json()
 
     async def connect_websocket(self, session_id):
-        ws_url = f'wss://teachsense.onrender.com/ws/sessions/{session_id}/?token={self.token}'
+        ws_url = f'wss://teachsense.up.railway.app/ws/sessions/{session_id}/?token={self.token}'
         async with websockets.connect(ws_url) as websocket:
             async for message in websocket:
                 data = json.loads(message)
@@ -175,7 +175,7 @@ class TeachSenseClient:
 
 # Usage
 client = TeachSenseClient(
-    'https://teachsense.onrender.com',
+    'https://teachsense.up.railway.app',
     'user@example.com',
     'password123'
 )
@@ -198,7 +198,7 @@ void setup() {
   WiFi.begin(ssid, password);
   
   webSocket.setAuthorization("Bearer", deviceToken);
-  webSocket.beginSSL("teachsense.onrender.com", 443, "/ws/devices/audio_01/");
+  webSocket.beginSSL("teachsense.up.railway.app", 443, "/ws/devices/audio_01/");
   webSocket.onEvent(webSocketEvent);
 }
 
@@ -290,9 +290,9 @@ void sendAudioFrame(uint8_t* audioData, size_t length) {
 ## Support & Resources
 
 - **Documentation**: This file and linked guides
-- **API Schema**: https://teachsense.onrender.com/api/schema/
-- **Interactive UI**: https://teachsense.onrender.com/docs/
-- **Status**: https://teachsense.onrender.com/api/health/
+- **API Schema**: https://teachsense.up.railway.app/api/schema/
+- **Interactive UI**: https://teachsense.up.railway.app/docs/
+- **Status**: https://teachsense.up.railway.app/api/health/
 - **Issues**: Contact development team
 
 ---

@@ -8,6 +8,7 @@ from apps.devices.api.views import (
     DeviceListView,
     DeviceDetailView,
     DeviceStatusView,
+    DeviceCommandView,
 )
 
 app_name = "devices-api"
@@ -19,4 +20,5 @@ urlpatterns = [
     path("", DeviceListView.as_view(), name="device-list"),
     path("<uuid:device_id>/", DeviceDetailView.as_view(), name="device-detail"),
     path("<uuid:device_id>/status/", DeviceStatusView.as_view(), name="device-status"),
+    path("<uuid:device_id>/command/", DeviceCommandView.as_view(), name="device-command"),
 ]

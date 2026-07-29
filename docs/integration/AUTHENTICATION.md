@@ -93,7 +93,7 @@ SecItemAdd(queryAdd as CFDictionary, nil)
 
 **REST API:**
 ```javascript
-fetch('https://teachsense.onrender.com/api/sessions/', {
+fetch('https://teachsense.up.railway.app/api/sessions/', {
   method: 'GET',
   headers: {
     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -106,7 +106,7 @@ fetch('https://teachsense.onrender.com/api/sessions/', {
 ```javascript
 const token = localStorage.getItem('accessToken');
 const ws = new WebSocket(
-  `wss://teachsense.onrender.com/ws/sessions/1/?token=${token}`
+  `wss://teachsense.up.railway.app/ws/sessions/1/?token=${token}`
 );
 ```
 
@@ -175,7 +175,7 @@ class ApiClient {
 
   async refreshToken() {
     const response = await fetch(
-      'https://teachsense.onrender.com/api/auth/refresh/',
+      'https://teachsense.up.railway.app/api/auth/refresh/',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,7 +234,7 @@ const api = new ApiClient();
 ```javascript
 async function logout() {
   // Call API logout endpoint
-  await fetch('https://teachsense.onrender.com/api/auth/logout/', {
+  await fetch('https://teachsense.up.railway.app/api/auth/logout/', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -264,7 +264,7 @@ Devices receive special tokens for hardware communication.
 
 **Registration:**
 ```bash
-curl -X POST https://teachsense.onrender.com/api/devices/ \
+curl -X POST https://teachsense.up.railway.app/api/devices/ \
   -H "Authorization: Bearer <user_token>" \
   -d '{
     "name":"Classroom Microphone",
@@ -279,7 +279,7 @@ curl -X POST https://teachsense.onrender.com/api/devices/ \
   "id": 15,
   "name": "Classroom Microphone",
   "auth_token": "device_auth_token_abc123",
-  "ws_url": "wss://teachsense.onrender.com/ws/devices/audio_01/"
+  "ws_url": "wss://teachsense.up.railway.app/ws/devices/audio_01/"
 }
 ```
 
@@ -288,7 +288,7 @@ curl -X POST https://teachsense.onrender.com/api/devices/ \
 ```javascript
 const deviceToken = 'device_auth_token_abc123';
 const deviceWs = new WebSocket(
-  `wss://teachsense.onrender.com/ws/devices/audio_01/?token=${deviceToken}`
+  `wss://teachsense.up.railway.app/ws/devices/audio_01/?token=${deviceToken}`
 );
 ```
 
@@ -319,10 +319,10 @@ sessionStorage.setItem('token', token);
 Always use HTTPS to prevent token interception:
 ```javascript
 // ✅ Good
-ws = new WebSocket('wss://teachsense.onrender.com/ws/...');
+ws = new WebSocket('wss://teachsense.up.railway.app/ws/...');
 
 // ❌ Bad
-ws = new WebSocket('ws://teachsense.onrender.com/ws/...');
+ws = new WebSocket('ws://teachsense.up.railway.app/ws/...');
 ```
 
 ### 3. Token Rotation
@@ -431,7 +431,7 @@ X-API-Key: your_api_key_here
 
 **Request:**
 ```bash
-curl https://teachsense.onrender.com/api/health/ \
+curl https://teachsense.up.railway.app/api/health/ \
   -H "X-API-Key: your_api_key_here"
 ```
 

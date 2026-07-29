@@ -216,7 +216,7 @@ const Devices = () => {
             To connect an Arduino or ESP32 device, use the WebSocket endpoint:
           </p>
           <div className="bg-black/30 rounded-xl p-3 sm:p-4 font-mono text-xs text-[#5cce6a] overflow-x-auto">
-            wss://teachsense.onrender.com/ws/devices/&#123;device_id&#125;/
+            wss://teachsense.up.railway.app/ws/devices/&#123;device_id&#125;/
           </div>
           <p className="text-xs text-white/40 mt-3">
             See the hardware integration docs for the full Arduino code example.

@@ -372,7 +372,7 @@ class RobustWebSocket {
 
 // Usage
 const ws = new RobustWebSocket(
-  `wss://teachsense.onrender.com/ws/sessions/1/?token=${token}`,
+  `wss://teachsense.up.railway.app/ws/sessions/1/?token=${token}`,
   (data) => console.log('Message:', data)
 );
 ws.connect();
@@ -486,7 +486,7 @@ ws.addEventListener('close', async (event) => {
     try {
       const newToken = await refreshToken();
       ws = new WebSocket(
-        `wss://teachsense.onrender.com/ws/sessions/1/?token=${newToken}`
+        `wss://teachsense.up.railway.app/ws/sessions/1/?token=${newToken}`
       );
     } catch (error) {
       // Force logout
