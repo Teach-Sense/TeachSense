@@ -172,6 +172,40 @@ class DeviceDetailView(APIView):
         return APIResponse.success(data=serializer.data)
 
 
+class DeviceCommandView(APIView):
+    """
+    Send a command to a device.
+    POST /api/devices/{id}/command/
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, device_id):
+        command = request.data.get("command")
+        parameters = request.data.get("parameters", {})
+        device = get_object_or_404(Device, id=device_id)
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"device_{device.device_id}",
+            {
+                "type": "device_command",
+                "command": command,
+                "parameters": parameters,
+            },
+        )
+        return APIResponse.success(
+            data={
+                "command_id": f"cmd_{device.device_id}",
+                "status": "executed",
+                "command": command,
+                "parameters": parameters,
+            }
+        )
+
+
 class DeviceStatusView(APIView):
     """
     Get device status.
@@ -186,7 +220,7 @@ class DeviceStatusView(APIView):
             return APIResponse.forbidden("Only admins can view device status.")
 
         device = get_object_or_404(Device, id=device_id)
-        
+
         is_online = device.status == "online"
         time_since_sync = (timezone.now() - device.last_sync).total_seconds() if device.last_sync else None
 

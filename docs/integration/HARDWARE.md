@@ -110,7 +110,7 @@ Hardware integration enables TeachSense to connect with various devices for audi
 
 ### Step 1: Create Device
 
-**Endpoint:** `POST /api/devices/`
+**Endpoint:** `POST /api/devices/register/`
 
 **Request:**
 ```json
@@ -125,14 +125,10 @@ Hardware integration enables TeachSense to connect with various devices for audi
 **Response:**
 ```json
 {
-  "id": 15,
-  "name": "My Microphone",
-  "type": "audio_input",
-  "status": "pending",
-  "protocol": "websocket",
-  "auth_token": "device_token_xyz123",
-  "created_at": "2024-05-23T10:00:00Z",
-  "ws_url": "wss://teachsense.up.railway.app/ws/devices/device_xyz123/"
+  "device_id": "550e8400-e29b-41d4-a716-446655440000",
+  "device_token": "device_token_xyz123",
+  "sync_interval_seconds": 30,
+  "status": "registered"
 }
 ```
 
@@ -169,6 +165,130 @@ Content-Type: application/json
   "status": "accepted",
   "device_status": "connected",
   "timestamp": "2024-05-23T10:00:16Z"
+}
+```
+
+### Step 4: Register Session
+
+**WebSocket Message:**
+```json
+{
+  "type": "register_session",
+  "session_id": 1
+}
+```
+
+**Backend Response:**
+```json
+{
+  "type": "session_confirmed",
+  "session_id": 1,
+  "status": "ready"
+}
+```
+
+### Step 5: Backend-to-Device Commands
+
+Once a session is confirmed, the device stays connected and waits for commands over WebSocket.
+Backend commands are delivered directly as messages on the existing device WebSocket connection.
+
+#### Start Recording
+
+**Incoming Message:**
+```json
+{
+  "type": "start_recording",
+  "parameters": {
+    "session_id": 1,
+    "quality": "high"
+  }
+}
+```
+
+**Device Response:**
+```json
+{
+  "type": "command_result",
+  "command": "start_recording",
+  "status": "executed",
+  "timestamp": "2024-05-23T10:02:00Z"
+}
+```
+
+#### Stop Recording
+
+**Incoming Message:**
+```json
+{
+  "type": "stop_recording",
+  "parameters": {
+    "session_id": 1
+  }
+}
+```
+
+#### New Question Ready to Speak
+
+**Incoming Message:**
+```json
+{
+  "type": "new_question",
+  "question_id": 42,
+  "text": "What is the capital of France?",
+  "voice": "natural_female",
+  "speed": 1.0
+}
+```
+
+**Device Action:**
+1. Call `POST /api/devices/{device_id}/speak/` with the `text`, `voice`, and `speed`.
+2. Receive `audio_url`.
+3. Play the audio.
+4. Send acknowledgement:
+```json
+{
+  "type": "command_result",
+  "command": "new_question",
+  "question_id": 42,
+  "status": "speaking"
+}
+```
+
+#### Listen for Answers
+
+**Incoming Message:**
+```json
+{
+  "type": "listen_for_answers",
+  "parameters": {
+    "session_id": 1,
+    "question_id": 42,
+    "duration_seconds": 30
+  }
+}
+```
+
+**Device Action:**
+1. Start capturing audio from the microphone.
+2. Stream `audio_frame` messages to the backend.
+3. Send acknowledgement:
+```json
+{
+  "type": "command_result",
+  "command": "listen_for_answers",
+  "status": "listening",
+  "timestamp": "2024-05-23T10:04:00Z"
+}
+```
+
+When listening finishes (timeout or silence), optionally send:
+```json
+{
+  "type": "command_result",
+  "command": "listen_for_answers",
+  "status": "stopped",
+  "reason": "timeout",
+  "timestamp": "2024-05-23T10:04:30Z"
 }
 ```
 
