@@ -9,6 +9,10 @@ const api = axios.create({
   timeout: 30000,
 });
 
+export const dashboardAPI = {
+  getOverview: () => api.get("/api/dashboards/overview/"),
+};
+
 // Attach access token to every request
 api.interceptors.request.use((config) => {
   const access = localStorage.getItem("accessToken");

@@ -11,7 +11,30 @@ const statusStyle: Record<string, string> = {
   completed: "bg-gray-100 text-gray-500 border-gray-200",
   scheduled: "bg-amber-100 text-amber-700 border-amber-200",
 };
+const fetchData = useCallback(async () => {
+  setError(null);
+  try {
+    const sessionsRes = await sessionsAPI.getAll();
+    const data = sessionsRes.data;
+    const sessionsList = data.data?.results ?? data.results ?? data;
+    setSessions(Array.isArray(sessionsList) ? sessionsList : []);
 
+    try {
+      const overviewRes = await dashboardAPI.getOverview();
+      setMetrics(overviewRes.data.data ?? overviewRes.data);
+    } catch {
+      // metrics optional
+    }
+  } catch (err: any) {
+    setError(
+      err?.response?.status === 401
+        ? "You are not authenticated. Please log in again."
+        : `Failed to load dashboard: ${err?.response?.data?.detail || err?.message || "Unknown error"}`
+    );
+  } finally {
+    setLoading(false);
+  }
+}, []);
 const Dashboard = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
