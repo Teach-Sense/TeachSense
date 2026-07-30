@@ -42,7 +42,7 @@ class DeviceListSerializer(serializers.ModelSerializer):
 class DeviceDetailSerializer(serializers.ModelSerializer):
     """Serializer for detailed device view."""
 
-    sync_logs = DeviceSyncLogSerializer(read_only=True, many=True, source="sync_logs")
+    sync_logs = DeviceSyncLogSerializer(read_only=True, many=True)
 
     class Meta:
         model = Device

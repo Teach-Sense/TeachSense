@@ -33,8 +33,7 @@ class SessionListCreateView(APIView):
         if request.user.role == "lecturer":
             sessions = Session.objects.filter(lecturer__user=request.user)
         else:
-            lecturer_profile = getattr(request.user, "lecturer_profile", None)
-            sessions = lecturer_profile.sessions.all() if lecturer_profile else Session.objects.none()
+            sessions = request.user.sessions.all()
 
         paginator = StandardResultsSetPagination()
         paginated_sessions = paginator.paginate_queryset(sessions, request)
@@ -77,8 +76,7 @@ class SessionDetailView(APIView):
         
         # Check permissions
         if request.user.role != "lecturer":
-            lecturer_profile = getattr(request.user, "lecturer_profile", None)
-            if not lecturer_profile or session not in lecturer_profile.sessions.all():
+            if session not in request.user.sessions.all():
                 return None
         else:
             if session.lecturer.user != request.user:

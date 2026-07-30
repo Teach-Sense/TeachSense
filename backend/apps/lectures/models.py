@@ -21,6 +21,14 @@ class Session(models.Model):
         related_name="sessions",
         help_text="Lecturer leading the session",
     )
+
+    enrolled_students = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name="sessions",
+        related_query_name="session",
+        help_text="Students enrolled in this session",
+    )
     
     title = models.CharField(max_length=500, help_text="Lecture title/topic")
     description = models.TextField(blank=True)

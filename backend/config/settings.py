@@ -166,13 +166,13 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = [
-	origin.strip()
+	origin.strip().rstrip("/")
 	for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 	if origin.strip()
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-	origin.strip()
+	origin.strip().rstrip("/")
 	for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 	if origin.strip()
 ]

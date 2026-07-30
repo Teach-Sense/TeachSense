@@ -48,3 +48,16 @@ them from `apps/integrations/matlab/service.py` via `_run_script(...)`. No core
 changes required.
 
 See `docs/integration/OVERVIEW.md` for the full environment configuration.
+
+## Session Audit
+
+If session creation ever fails after the database write succeeds, you can inspect
+recent rows and spot likely duplicates with the read-only audit command:
+
+```bash
+python manage.py list_stale_test_sessions
+python manage.py list_stale_test_sessions --date 2026-07-30 --window-seconds 15
+```
+
+The command only prints results. Review the output and delete any junk rows
+manually in the shell if needed.

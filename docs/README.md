@@ -258,6 +258,17 @@ void sendAudioFrame(uint8_t* audioData, size_t length) {
 
 ## Troubleshooting
 
+## Session Audit
+
+If session creation succeeds in the database but fails during response serialization, you can inspect recent rows with the read-only audit command:
+
+```bash
+python manage.py list_stale_test_sessions
+python manage.py list_stale_test_sessions --date 2026-07-30 --window-seconds 15
+```
+
+The command only prints results. Review the output and delete any junk rows manually in the shell if needed.
+
 ### Can't Connect to WebSocket
 - Verify token hasn't expired: use `/api/auth/refresh/`
 - Check URL format: `wss://` not `ws://`
