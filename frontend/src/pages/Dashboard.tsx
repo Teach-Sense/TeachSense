@@ -4,7 +4,7 @@ import { Plus, Play, Square, ChevronRight, Loader2, BookOpen, BarChart2, CheckCi
 import DashboardLayout from "../layouts/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import { sessionsAPI } from "../services/api";
-import { useWebSocket } from "../hooks/useWebSocket";
+import { useWebSocket } from "../hooks/useWebsocket";
 import type { Session } from "../types/session";
 
 const statusStyle: Record<string, string> = {
@@ -46,7 +46,7 @@ const Dashboard = () => {
   // Live updates: DashboardConsumer broadcasts "sessions_update" and
   // "metrics_update" events. On any sessions_update, just refetch —
   // simplest and safest way to stay in sync with the backend.
-  useWebSocket("dashboard/", (data) => {
+ useWebSocket("dashboard/", (data: any) => {
     if (data?.type === "sessions_update") {
       fetchData();
     }
