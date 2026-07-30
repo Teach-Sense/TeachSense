@@ -4,7 +4,7 @@ import { Plus, Play, Square, ChevronRight, Loader2, BookOpen, BarChart2, CheckCi
 import DashboardLayout from "../layouts/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import { sessionsAPI } from "../services/api";
-import { useWebSocket } from "../hooks/useWebsocket";
+import { useWebSocket } from "../hooks/useWebSocket";
 import type { Session } from "../types/session";
 
 const statusStyle: Record<string, string> = {
