@@ -8,19 +8,19 @@ WebSocket connections enable real-time bidirectional communication between front
 
 ### Base URL
 ```
-wss://teachsense.onrender.com/ws/
+wss://teachsense.up.railway.app/ws/
 ```
 
 ### Supported Endpoints
 
 1. **Session Consumer** - Real-time lecture updates
    ```
-   wss://teachsense.onrender.com/ws/sessions/<session_id>/
+   wss://teachsense.up.railway.app/ws/sessions/<session_id>/
    ```
 
 2. **Dashboard Consumer** - Live metrics and dashboard updates
    ```
-   wss://teachsense.onrender.com/ws/dashboard/
+   wss://teachsense.up.railway.app/ws/dashboard/
    ```
 
 ---
@@ -42,7 +42,7 @@ const sessionId = 1;
 const token = localStorage.getItem('authToken');
 
 const ws = new WebSocket(
-  `wss://teachsense.onrender.com/ws/sessions/${sessionId}/?token=${token}`
+  `wss://teachsense.up.railway.app/ws/sessions/${sessionId}/?token=${token}`
 );
 
 ws.onopen = (event) => {
@@ -65,7 +65,7 @@ import websockets
 import json
 
 async def connect_to_session(session_id, token):
-    uri = f"wss://teachsense.onrender.com/ws/sessions/{session_id}/?token={token}"
+    uri = f"wss://teachsense.up.railway.app/ws/sessions/{session_id}/?token={token}"
     async with websockets.connect(uri) as websocket:
         async for message in websocket:
             data = json.loads(message)
@@ -221,7 +221,7 @@ Provides real-time metrics and aggregated data for dashboard displays:
 const token = localStorage.getItem('authToken');
 
 const dashboardWs = new WebSocket(
-  `wss://teachsense.onrender.com/ws/dashboard/?token=${token}`
+  `wss://teachsense.up.railway.app/ws/dashboard/?token=${token}`
 );
 
 dashboardWs.addEventListener('message', (event) => {
@@ -325,7 +325,7 @@ Stop receiving updates
 WebSocket connections require JWT token as query parameter:
 
 ```
-wss://teachsense.onrender.com/ws/sessions/1/?token=eyJ0eXAiOiJKV1QiLCJhbGc...
+wss://teachsense.up.railway.app/ws/sessions/1/?token=eyJ0eXAiOiJKV1QiLCJhbGc...
 ```
 
 **Important:** Token must be:
@@ -344,7 +344,7 @@ If token expires while connected:
 async function reconnectWithNewToken() {
   const newToken = await refreshToken();
   ws = new WebSocket(
-    `wss://teachsense.onrender.com/ws/sessions/${sessionId}/?token=${newToken}`
+    `wss://teachsense.up.railway.app/ws/sessions/${sessionId}/?token=${newToken}`
   );
 }
 ```
@@ -503,7 +503,7 @@ ws.send(JSON.stringify({
 ```javascript
 const sessionId = 1;
 const ws = new WebSocket(
-  `wss://teachsense.onrender.com/ws/sessions/${sessionId}/?token=${token}`
+  `wss://teachsense.up.railway.app/ws/sessions/${sessionId}/?token=${token}`
 );
 
 ws.addEventListener('message', (event) => {
@@ -527,7 +527,7 @@ ws.addEventListener('message', (event) => {
 
 ```javascript
 const dashboardWs = new WebSocket(
-  `wss://teachsense.onrender.com/ws/dashboard/?token=${token}`
+  `wss://teachsense.up.railway.app/ws/dashboard/?token=${token}`
 );
 
 dashboardWs.addEventListener('message', (event) => {

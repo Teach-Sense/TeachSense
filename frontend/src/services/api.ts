@@ -9,6 +9,10 @@ const api = axios.create({
   timeout: 30000,
 });
 
+export const dashboardAPI = {
+  getOverview: () => api.get("/api/dashboards/overview/"),
+};
+
 // Attach access token to every request
 api.interceptors.request.use((config) => {
   const access = localStorage.getItem("accessToken");
@@ -29,9 +33,9 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         const refresh = localStorage.getItem("refreshToken");
-        const { data } = await axios.post(`${API_BASE_URL}/api/auth/refresh/`, { refresh });
-        localStorage.setItem("accessToken", data.access);
-        localStorage.setItem("refreshToken", data.refresh);
+       const { data } = await axios.post(`${API_BASE_URL}/api/auth/token/refresh/`, { refresh });
+       localStorage.setItem("accessToken", data.access);
+       localStorage.setItem("refreshToken", data.refresh);
         original.headers.Authorization = `Bearer ${data.access}`;
         return api(original);
       } catch {
@@ -39,6 +43,7 @@ api.interceptors.response.use(
         window.location.href = "/login";
       }
     }
+  
 
     if (status === 429 && !original._rateLimitRetry) {
       original._rateLimitRetry = true;
@@ -129,6 +134,9 @@ export const authAPI = {
 
   changePassword: (old_password: string, new_password: string) =>
     api.post("/api/auth/change-password/", { old_password, new_password }),
+
+  refresh: (refresh: string) =>
+    api.post("/api/auth/token/refresh/", { refresh }),
 };
 
 // ─── Sessions ────────────────────────────────────────────
@@ -212,11 +220,6 @@ export const analyticsAPI = {
     }),
 };
 
-// ─── Dashboard ───────────────────────────────────────────
-export const dashboardAPI = {
-  getAll: () => api.get("/api/dashboards/"),
-  getMetrics: (id: number) => api.get(`/api/dashboards/${id}/metrics/`),
-};
 
 // ─── Health ──────────────────────────────────────────────
 export const healthAPI = {

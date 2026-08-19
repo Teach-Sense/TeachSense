@@ -60,7 +60,7 @@ class SessionListSerializer(serializers.ModelSerializer):
     """Serializer for listing sessions (brief)."""
 
     lecture = LecturerSerializer(read_only=True, source="lecturer")
-    analytics = SessionAnalyticsSerializer(read_only=True, source="analytics")
+    analytics = SessionAnalyticsSerializer(read_only=True)
 
     class Meta:
         model = Session
@@ -88,8 +88,8 @@ class SessionDetailSerializer(serializers.ModelSerializer):
     """Serializer for detailed session view."""
 
     lecture = LecturerSerializer(read_only=True, source="lecturer")
-    summary = SummarySerializer(read_only=True, source="summary")
-    analytics = SessionAnalyticsSerializer(read_only=True, source="analytics")
+    summary = SummarySerializer(read_only=True)
+    analytics = SessionAnalyticsSerializer(read_only=True)
 
     class Meta:
         model = Session

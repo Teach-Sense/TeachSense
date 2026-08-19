@@ -8,6 +8,22 @@ from apps.users.models import User
 from django.contrib.auth import authenticate
 
 
+def _validate_self_service_role(serializer, value):
+    """Block self-service promotion to admin while preserving existing admin accounts."""
+    if value != "admin":
+        return value
+
+    instance = getattr(serializer, "instance", None)
+    if instance and instance.role == "admin":
+        return value
+
+    request = serializer.context.get("request")
+    if request and request.user and (request.user.is_staff or request.user.is_superuser):
+        return value
+
+    raise serializers.ValidationError("Admin role cannot be assigned through this endpoint.")
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for user profile."""
 
@@ -25,6 +41,9 @@ class UserSerializer(serializers.ModelSerializer):
             "is_lecturer",
             "is_active",
         )
+
+    def validate_role(self, value):
+        return _validate_self_service_role(self, value)
 
     def get_is_lecturer(self, obj):
         return obj.role == "lecturer"
@@ -56,6 +75,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if attrs.get("password") != attrs.get("password_confirm"):
             raise serializers.ValidationError({"password": ["Passwords do not match."]})
         return attrs
+
+    def validate_role(self, value):
+        return _validate_self_service_role(self, value)
 
     def validate_email(self, value):
         """Ensure email is provided and unique."""

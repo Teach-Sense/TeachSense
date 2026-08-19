@@ -131,6 +131,10 @@ class ProfileView(APIView):
             message="Failed to update profile.",
         )
 
+    def patch(self, request):
+        """Partially update user profile."""
+        return self.put(request)
+
 
 class ChangePasswordView(APIView):
     """
