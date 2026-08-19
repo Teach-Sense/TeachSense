@@ -20,26 +20,27 @@ class Session(models.Model):
         on_delete=models.CASCADE,
         related_name="sessions",
         help_text="Lecturer leading the session",
+        null=True,
+        blank=True,
     )
-    
+
     title = models.CharField(max_length=500, help_text="Lecture title/topic")
     description = models.TextField(blank=True)
-    
+    class_taught = models.CharField(max_length=255, blank=True, help_text="Class or course name")
+
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default="draft",
         help_text="Current session status",
     )
-    
-    # Timing
+
     started_at = models.DateTimeField(null=True, blank=True)
     ended_at = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.IntegerField(
         null=True, blank=True, help_text="Total session duration in seconds"
     )
-    
-    # Configuration
+
     target_question_count = models.IntegerField(
         default=5,
         validators=[MinValueValidator(1), MaxValueValidator(50)],
@@ -49,8 +50,7 @@ class Session(models.Model):
         default=True,
         help_text="Automatically determine question count based on content",
     )
-    
-    # Scores & metrics
+
     teaching_effectiveness_score = models.FloatField(
         null=True,
         blank=True,
@@ -63,8 +63,19 @@ class Session(models.Model):
         validators=[MinValueValidator(0.0), MaxValueValidator(100.0)],
         help_text="Average student comprehension score for this session",
     )
-    
-    # Processing state
+    teaching_scope_score = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(100.0)],
+        help_text="Teaching scope coverage score for this session (0-100)",
+    )
+
+    tips = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Lecturing tips: topics to revisit, explanation tips, top 3 actions",
+    )
+
     transcript_ready = models.BooleanField(
         default=False, help_text="Full transcript generated"
     )
@@ -80,7 +91,7 @@ class Session(models.Model):
     results_published = models.BooleanField(
         default=False, help_text="Results visible to student view"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

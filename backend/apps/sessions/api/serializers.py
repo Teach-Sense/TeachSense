@@ -68,6 +68,7 @@ class SessionListSerializer(serializers.ModelSerializer):
             "id",
             "lecture",
             "title",
+            "class_taught",
             "status",
             "transcript_ready",
             "summary_ready",
@@ -76,6 +77,7 @@ class SessionListSerializer(serializers.ModelSerializer):
             "results_published",
             "teaching_effectiveness_score",
             "average_student_comprehension",
+            "teaching_scope_score",
             "started_at",
             "ended_at",
             "analytics",
@@ -96,6 +98,7 @@ class SessionDetailSerializer(serializers.ModelSerializer):
             "lecture",
             "title",
             "description",
+            "class_taught",
             "status",
             "transcript_ready",
             "summary_ready",
@@ -104,6 +107,8 @@ class SessionDetailSerializer(serializers.ModelSerializer):
             "results_published",
             "teaching_effectiveness_score",
             "average_student_comprehension",
+            "teaching_scope_score",
+            "tips",
             "summary",
             "analytics",
             "started_at",
@@ -118,11 +123,13 @@ class SessionCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Session
-        fields = ("lecture", "title", "description")
+        fields = ("lecturer", "title", "description", "class_taught")
 
     lecture = serializers.PrimaryKeyRelatedField(
         source="lecturer",
         queryset=Lecturer.objects.all(),
+        required=False,
+        allow_null=True,
     )
 
     def create(self, validated_data):
@@ -135,4 +142,4 @@ class SessionUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Session
-        fields = ("title", "description", "status")
+        fields = ("title", "description", "class_taught", "status", "tips")
