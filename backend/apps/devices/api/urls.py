@@ -4,11 +4,11 @@ URL routing for Devices API.
 from django.urls import path
 from apps.devices.api.views import (
     DeviceRegisterView,
-    DeviceSyncView,
+    # DeviceSyncView,      # not implemented yet in views.py
     DeviceListView,
     DeviceDetailView,
-    DeviceStatusView,
-    DeviceCommandView,
+    # DeviceStatusView,    # not implemented yet in views.py
+    # DeviceCommandView,   # not implemented yet in views.py
 )
 
 app_name = "devices-api"
@@ -16,9 +16,9 @@ app_name = "devices-api"
 urlpatterns = [
     # Device management
     path("register/", DeviceRegisterView.as_view(), name="device-register"),
-    path("sync/", DeviceSyncView.as_view(), name="device-sync"),
+    # path("sync/", DeviceSyncView.as_view(), name="device-sync"),
     path("", DeviceListView.as_view(), name="device-list"),
     path("<uuid:device_id>/", DeviceDetailView.as_view(), name="device-detail"),
-    path("<uuid:device_id>/status/", DeviceStatusView.as_view(), name="device-status"),
-    path("<uuid:device_id>/command/", DeviceCommandView.as_view(), name="device-command"),
+    # path("<uuid:device_id>/status/", DeviceStatusView.as_view(), name="device-status"),
+    # path("<uuid:device_id>/command/", DeviceCommandView.as_view(), name="device-command"),
 ]
